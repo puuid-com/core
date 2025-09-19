@@ -1,0 +1,1 @@
+ALTER TABLE "match_summoner" ADD COLUMN "game_creation_ms" bigint;

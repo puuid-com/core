@@ -1,0 +1,1 @@
+ALTER TABLE "summoner_refresh" ADD COLUMN "is_full_refresh" boolean NOT NULL;

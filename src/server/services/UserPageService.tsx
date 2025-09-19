@@ -10,7 +10,7 @@ import {
   type UserPageWithRelations,
 } from "@/server/db/schema/user-page";
 import { SummonerService } from "@/server/services/summoner/SummonerService";
-import { CDragonService } from "@/shared/services/CDragon/CDragonService";
+import { CDragonService } from "@/shared/services/CDragonService";
 import type { User } from "better-auth";
 import { desc, eq, ilike, sql } from "drizzle-orm";
 

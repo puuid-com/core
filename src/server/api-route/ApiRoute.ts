@@ -33,7 +33,7 @@ export class RiotApiRoute<S extends Schema, P> {
 
     const url = this.configs.getUrl(param);
 
-    return await lolClient()(url, options).json<unknown>();
+    return await lolClient(url, options).json<unknown>();
   }
 
   protected parseData(data: unknown): v.InferOutput<S> {

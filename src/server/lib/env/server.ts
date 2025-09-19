@@ -4,7 +4,12 @@ import * as v from "valibot";
 export const serverEnv = createEnv({
   server: {
     RIOT_API_KEY: v.string(),
-    RIOT_DEFAULT_ROUTING_VALUE: v.picklist(["americas", "europe", "asia", "sea"]),
+    RIOT_DEFAULT_ROUTING_VALUE: v.picklist([
+      "americas",
+      "europe",
+      "asia",
+      "sea",
+    ]),
     RIOT_CLIENT_ID: v.string(),
     RIOT_CLIENT_SECRET: v.string(),
 
@@ -19,9 +24,7 @@ export const serverEnv = createEnv({
     DATABASE_USER: v.string(),
     DATABASE_PASSWORD: v.string(),
     DATABASE_NAME: v.string(),
-
-    GITHUB_CLIENT_ID: v.string(),
-    GITHUB_CLIENT_SECRET: v.string(),
+    DATABASE_CRT: v.string(),
 
     BETTER_AUTH_URL: v.string(),
   },

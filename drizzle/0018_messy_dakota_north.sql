@@ -1,0 +1,1 @@
+ALTER TABLE "summoner_refresh" ADD COLUMN "queue_type" text NOT NULL;

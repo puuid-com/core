@@ -15,12 +15,13 @@ import {
   primaryKey,
   text,
   timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const userPageStatisticTable = pgTable(
   "user_page_statistic",
   {
-    userPageId: text("user_page_id")
+    userPageId: uuid("user_page_id")
       .references(() => userPageTable.id, { onDelete: "cascade" })
       .notNull(),
     queueType: text("queue_type").$type<LolQueueType>().notNull(),
@@ -41,27 +42,42 @@ export const userPageStatisticTable = pgTable(
     averageDeathPerGame: doublePrecision("average_death_per_game").notNull(),
     averageAssistPerGame: doublePrecision("average_assist_per_game").notNull(),
 
-    statsByTeammates: jsonb("stats_by_teammates").$type<StatsByTeammate>().notNull(),
+    statsByTeammates: jsonb("stats_by_teammates")
+      .$type<StatsByTeammate>()
+      .notNull(),
 
-    statsByChampionId: jsonb("stats_by_champion_id").$type<StatsByChampionId>().notNull(),
-    statsByPosition: jsonb("stats_by_position").$type<StatsByIndividualPosition>().notNull(),
-    statsByOppositePositionChampionId: jsonb("stats_by_opposite_position_champion_id")
+    statsByChampionId: jsonb("stats_by_champion_id")
+      .$type<StatsByChampionId>()
+      .notNull(),
+    statsByPosition: jsonb("stats_by_position")
+      .$type<StatsByIndividualPosition>()
+      .notNull(),
+    statsByOppositePositionChampionId: jsonb(
+      "stats_by_opposite_position_champion_id"
+    )
       .$type<StatsByChampionId>()
       .notNull(),
 
     wins: integer("wins").notNull(),
     losses: integer("losses").notNull(),
 
-    refreshedAt: timestamp("refreshed_at", { withTimezone: true }).notNull().defaultNow(),
+    refreshedAt: timestamp("refreshed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.userPageId, t.queueType] })],
+  (t) => [primaryKey({ columns: [t.userPageId, t.queueType] })]
 );
-export const userPageStatisticTableRelations = relations(userPageStatisticTable, ({ one }) => ({
-  userPage: one(userPageTable, {
-    fields: [userPageStatisticTable.userPageId],
-    references: [userPageTable.id],
-  }),
-}));
+export const userPageStatisticTableRelations = relations(
+  userPageStatisticTable,
+  ({ one }) => ({
+    userPage: one(userPageTable, {
+      fields: [userPageStatisticTable.userPageId],
+      references: [userPageTable.id],
+    }),
+  })
+);
 
-export type UserPageStatisticRowType = typeof userPageStatisticTable.$inferSelect;
-export type InsertUserPageStatisticRowType = typeof userPageStatisticTable.$inferInsert;
+export type UserPageStatisticRowType =
+  typeof userPageStatisticTable.$inferSelect;
+export type InsertUserPageStatisticRowType =
+  typeof userPageStatisticTable.$inferInsert;

@@ -21,7 +21,9 @@ import { noteTable } from "@/server/db/schema/note";
 export class SummonerService {
   static async getSummonersWithRelations(search?: string) {
     const norm = search ? normalizeRiotID(search) : "";
-    const whereClause = norm ? ilike(summonerTable.normalizedRiotId, `%${norm}%`) : undefined;
+    const whereClause = norm
+      ? ilike(summonerTable.normalizedRiotId, `%${norm}%`)
+      : undefined;
 
     return db.query.summonerTable.findMany({
       where: whereClause,
@@ -35,7 +37,7 @@ export class SummonerService {
   }
 
   static async getSummoners(
-    options: { search?: string; limit?: number; userId?: User["id"] } = {},
+    options: { search?: string; limit?: number; userId?: User["id"] } = {}
   ) {
     const { search, limit = 25, userId } = options;
 
@@ -44,12 +46,21 @@ export class SummonerService {
     const prefixPattern = norm ? `${norm}%` : undefined;
 
     // Adaptive threshold for short inputs
-    const jwThreshold = norm ? (norm.length <= 3 ? 0.6 : norm.length <= 4 ? 0.68 : 0.75) : 0.0;
+    const jwThreshold = norm
+      ? norm.length <= 3
+        ? 0.6
+        : norm.length <= 4
+        ? 0.68
+        : 0.75
+      : 0.0;
 
     // Join only the current user's note, otherwise no-op join
     const joinOn =
       userId !== undefined
-        ? and(eq(noteTable.puuid, summonerTable.puuid), eq(noteTable.userId, userId))
+        ? and(
+            eq(noteTable.puuid, summonerTable.puuid),
+            eq(noteTable.userId, userId)
+          )
         : sql`false`;
 
     // Fuzzy note predicate for WHERE (only when we have a term and a user)
@@ -81,7 +92,11 @@ export class SummonerService {
     (CASE WHEN ${noteFuzzyHit} THEN 100 ELSE 0 END)
     + (${simNote} * 10)
     + ${simId}
-    + (CASE WHEN ${prefixPattern ? sql`${summonerTable.normalizedRiotId} ILIKE ${prefixPattern}` : sql`false`} THEN 1 ELSE 0 END)
+    + (CASE WHEN ${
+      prefixPattern
+        ? sql`${summonerTable.normalizedRiotId} ILIKE ${prefixPattern}`
+        : sql`false`
+    } THEN 1 ELSE 0 END)
   `;
 
     return db
@@ -89,13 +104,17 @@ export class SummonerService {
       .from(summonerTable)
       .leftJoin(noteTable, joinOn)
       .where(whereClause) // inferred type fits .where()
-      .orderBy(desc(score), summonerTable.region, desc(summonerTable.summonerLevel))
+      .orderBy(
+        desc(score),
+        summonerTable.region,
+        desc(summonerTable.summonerLevel)
+      )
       .limit(limit);
   }
 
   static async getSummonerByPuuidTx(
     tx: TransactionType,
-    puuid: SummonerType["puuid"],
+    puuid: SummonerType["puuid"]
   ): Promise<SummonerWithRelationsType | undefined> {
     return tx.query.summonerTable.findFirst({
       where: eq(summonerTable.puuid, puuid),
@@ -111,10 +130,19 @@ export class SummonerService {
     });
   }
 
+  static async getSummonerByRiotID(
+    clientRiotID: SummonerType["riotId"],
+    refresh = false
+  ) {
+    return db.transaction((tx) =>
+      this.getOrCreateSummonerByRiotIDTx(tx, clientRiotID, refresh)
+    );
+  }
+
   static async getOrCreateSummonerByRiotIDTx(
     tx: TransactionType,
     clientRiotID: SummonerType["riotId"],
-    refresh = false,
+    refresh = false
   ): Promise<SummonerWithRelationsType> {
     const { riotId, gameName, tagLine } = getPartsFromRiotID(clientRiotID);
 
@@ -137,7 +165,10 @@ export class SummonerService {
       return cachedData;
     }
 
-    const account = await AccountService.getAccountByRiotID({ gameName, tagLine });
+    const account = await AccountService.getAccountByRiotID({
+      gameName,
+      tagLine,
+    });
     const accountRegion = await AccountService.getAccountRegion(account.puuid);
 
     return this.handleSummonerCreationFromAccountTx(tx, account, accountRegion);
@@ -146,7 +177,7 @@ export class SummonerService {
   static async getOrCreateSummonerByPuuidTx(
     tx: TransactionType,
     puuid: SummonerType["puuid"],
-    refresh = false,
+    refresh = false
   ): Promise<SummonerType> {
     const cachedRows = await tx
       .select()
@@ -171,7 +202,9 @@ export class SummonerService {
       where: inArray(summonerTable.puuid, puuids),
     });
 
-    const notCached = puuids.filter((puuid) => !cached.some((s) => s.puuid === puuid));
+    const notCached = puuids.filter(
+      (puuid) => !cached.some((s) => s.puuid === puuid)
+    );
 
     if (notCached.length === 0) {
       return cached;
@@ -183,9 +216,9 @@ export class SummonerService {
           Promise.all([
             AccountService.getAccountByPuuid({ puuid }),
             AccountService.getAccountRegion(puuid),
-          ]),
+          ])
         )
-        .flat(),
+        .flat()
     );
 
     const dataByPuuid = accounts.flat().reduce<
@@ -218,17 +251,22 @@ export class SummonerService {
         SummonerDTOService.getSummonerDTOByPuuid({
           puuid: d.puuid,
           region: d.accountRegion.region,
-        }),
-      ),
+        })
+      )
     );
 
-    const summoners: InsertSummonerType[] = dataByPuuid.map(({ puuid, account, accountRegion }) => {
-      const summoner = summonersDTO.find((s) => s.puuid === puuid)!;
+    const summoners: InsertSummonerType[] = dataByPuuid.map(
+      ({ puuid, account, accountRegion }) => {
+        const summoner = summonersDTO.find((s) => s.puuid === puuid)!;
 
-      return this.summonerDataToDB(account, summoner, accountRegion);
-    });
+        return this.summonerDataToDB(account, summoner, accountRegion);
+      }
+    );
 
-    const insertedSummoners = await db.insert(summonerTable).values(summoners).returning();
+    const insertedSummoners = await db
+      .insert(summonerTable)
+      .values(summoners)
+      .returning();
 
     return [...cached, ...insertedSummoners];
   }
@@ -236,7 +274,7 @@ export class SummonerService {
   static async handleSummonerCreationFromAccountTx(
     tx: TransactionType,
     account: AccountDTOType,
-    accountRegion: AccountRegionDTOType,
+    accountRegion: AccountRegionDTOType
   ): Promise<SummonerWithRelationsType> {
     const summoner = await SummonerDTOService.getSummonerDTOByPuuid({
       puuid: account.puuid,
@@ -272,14 +310,16 @@ export class SummonerService {
   private static summonerDataToDB(
     account: AccountDTOType,
     summoner: SummonerDTOType,
-    accountRegion: AccountRegionDTOType,
+    accountRegion: AccountRegionDTOType
   ): InsertSummonerType {
     return {
       puuid: account.puuid,
 
       displayRiotId: `${account.gameName}#${account.tagLine}`,
       riotId: trimRiotID(`${account.gameName}#${account.tagLine}`),
-      normalizedRiotId: normalizeRiotID(`${account.gameName}#${account.tagLine}`),
+      normalizedRiotId: normalizeRiotID(
+        `${account.gameName}#${account.tagLine}`
+      ),
 
       summonerLevel: summoner.summonerLevel,
       profileIconId: summoner.profileIconId,

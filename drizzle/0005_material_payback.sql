@@ -1,0 +1,1 @@
+ALTER TABLE "statistic" ALTER COLUMN "latest_league_entry_id" DROP NOT NULL;

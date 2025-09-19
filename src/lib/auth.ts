@@ -7,7 +7,7 @@ import { genericOAuth } from "better-auth/plugins";
 import ky from "ky";
 import type { AccountDTOType } from "@/server/api-route/riot/account/AccountDTO";
 import type { SummonerDTOType } from "@/server/api-route/riot/summoner/SummonerDTO";
-import { CDragonService } from "@/shared/services/CDragon/CDragonService";
+import { CDragonService } from "@/shared/services/CDragonService";
 import { UserPageService } from "@/server/services/UserPageService";
 
 export const auth = betterAuth({
@@ -106,13 +106,6 @@ export const auth = betterAuth({
     }),
     reactStartCookies(),
   ],
-  socialProviders: {
-    github: {
-      clientId: serverEnv.GITHUB_CLIENT_ID,
-      clientSecret: serverEnv.GITHUB_CLIENT_SECRET,
-      redirectURI: `${serverEnv.BETTER_AUTH_URL}/api/auth/callback/github`,
-    },
-  },
   account: {
     accountLinking: {
       enabled: true,

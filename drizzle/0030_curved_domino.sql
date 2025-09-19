@@ -1,0 +1,1 @@
+ALTER TABLE "user_page_statistic" ALTER COLUMN "user_page_id" SET DATA TYPE uuid;

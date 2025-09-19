@@ -13,12 +13,8 @@ import * as commentSchema from "@/server/db/schema/match-comments";
 import * as viewsSchema from "@/server/db/schema/views";
 import * as userPageSchema from "@/server/db/schema/user-page";
 import * as userPageStatisticSchema from "@/server/db/schema/user-page-statistic";
-import { readFileSync } from "node:fs";
 
-const ca = readFileSync(
-  new URL("../../../ca-certificate.crt", import.meta.url),
-  "utf8",
-);
+const ca = Buffer.from(serverEnv.DATABASE_CRT, "base64").toString("utf8");
 
 const pool = new Pool({
   host: serverEnv.DATABASE_HOST,
@@ -26,7 +22,7 @@ const pool = new Pool({
   database: serverEnv.DATABASE_NAME,
   user: serverEnv.DATABASE_USER,
   password: serverEnv.DATABASE_PASSWORD,
-  ssl: { ca: ca }, // vérification activée
+  ssl: { ca: ca },
 });
 
 export const db = drizzle({

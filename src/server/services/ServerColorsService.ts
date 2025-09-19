@@ -1,4 +1,4 @@
-import { CDragonService } from "@/shared/services/CDragon/CDragonService";
+import { CDragonService } from "@/shared/services/CDragonService";
 import { Vibrant } from "node-vibrant/node";
 import { NodeImage } from "@vibrant/image-node";
 

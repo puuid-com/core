@@ -1,0 +1,1 @@
+ALTER TABLE "user_page_summoner" ADD CONSTRAINT "user_page_summoner_puuid_unique" UNIQUE("puuid");
