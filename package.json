@@ -1,6 +1,6 @@
 {
   "name": "@puuid/core",
-  "version": "0.1.8",
+  "version": "0.1.13",
   "description": "Core utilities for puuid.com",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,74 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./lib": {
+      "import": "./dist/lib/index.js",
+      "types": "./dist/lib/index.d.ts"
+    },
+    "./lib/*": {
+      "import": "./dist/lib/*.js",
+      "types": "./dist/lib/*.d.ts"
+    },
+    "./shared": {
+      "import": "./dist/shared/index.js",
+      "types": "./dist/shared/index.d.ts"
+    },
+    "./shared/*": {
+      "import": "./dist/shared/*.js",
+      "types": "./dist/shared/*.d.ts"
+    },
+    "./shared/services": {
+      "import": "./dist/shared/services/index.js",
+      "types": "./dist/shared/services/index.d.ts"
+    },
+    "./shared/services/DDragonService": {
+      "import": "./dist/shared/services/DDragonService/index.js",
+      "types": "./dist/shared/services/DDragonService/index.d.ts"
+    },
+    "./shared/services/DDragonService/*": {
+      "import": "./dist/shared/services/DDragonService/*.js",
+      "types": "./dist/shared/services/DDragonService/*.d.ts"
+    },
+    "./server/api-route": {
+      "import": "./dist/server/api-route/index.js",
+      "types": "./dist/server/api-route/index.d.ts"
+    },
+    "./server/api-route/*": {
+      "import": "./dist/server/api-route/*.js",
+      "types": "./dist/server/api-route/*.d.ts"
+    },
+    "./server/db": {
+      "import": "./dist/server/db/index.js",
+      "types": "./dist/server/db/index.d.ts"
+    },
+    "./server/db/*": {
+      "import": "./dist/server/db/*.js",
+      "types": "./dist/server/db/*.d.ts"
+    },
+    "./server/lib": {
+      "import": "./dist/server/lib/index.js",
+      "types": "./dist/server/lib/index.d.ts"
+    },
+    "./server/lib/*": {
+      "import": "./dist/server/lib/*.js",
+      "types": "./dist/server/lib/*.d.ts"
+    },
+    "./server/services": {
+      "import": "./dist/server/services/index.js",
+      "types": "./dist/server/services/index.d.ts"
+    },
+    "./server/services/*": {
+      "import": "./dist/server/services/*.js",
+      "types": "./dist/server/services/*.d.ts"
+    },
+    "./server/types": {
+      "import": "./dist/server/types/index.js",
+      "types": "./dist/server/types/index.d.ts"
+    },
+    "./server/types/*": {
+      "import": "./dist/server/types/*.js",
+      "types": "./dist/server/types/*.d.ts"
     }
   },
   "files": [

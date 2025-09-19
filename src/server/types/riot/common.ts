@@ -66,3 +66,6 @@ export const LolTiers = [
   "CHALLENGER",
 ] as const;
 export type LolTierType = (typeof LolTiers)[number];
+
+export const LolRanks = ["IV", "III", "II", "I"] as const;
+export type LolRankType = (typeof LolRanks)[number];

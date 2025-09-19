@@ -4,14 +4,17 @@ import {
   SummonerSpellsResponseSchema,
   type FormattedSummonerSpellsType,
   type ChampionsResponseType,
-} from "@/shared/services/DDragon/types";
+} from "@/shared/services/DDragonService/types";
 import ky from "ky";
 import * as v from "valibot";
 import type { MatchSummonerRowType } from "@/server/db/schema/match";
-import { DDragonItemFileSchema, type DDragonItemsData } from "@/shared/services/DDragon/items-dto";
-import type { ProfileIconType } from "@/shared/services/DDragon/profile-icons-dto";
+import {
+  DDragonItemFileSchema,
+  type DDragonItemsData,
+} from "@/shared/services/DDragonService/items-dto";
+import type { ProfileIconType } from "@/shared/services/DDragonService/profile-icons-dto";
 import type { SummonerType } from "@/server/db/schema/summoner";
-import { DDragonChampionFileSchema } from "@/shared/services/DDragon/champion-dto";
+import { DDragonChampionFileSchema } from "@/shared/services/DDragonService/champion-dto";
 
 export type DDragonMetadata = {
   champions: ChampionsResponseType["data"];
@@ -22,7 +25,9 @@ export type DDragonMetadata = {
 
 export class DDragonService {
   private static async getVersions() {
-    const response = await ky.get(`https://ddragon.leagueoflegends.com/api/versions.json`).json();
+    const response = await ky
+      .get(`https://ddragon.leagueoflegends.com/api/versions.json`)
+      .json();
 
     return v.parse(VersionsResponseSchema, response);
   }
@@ -70,7 +75,7 @@ export class DDragonService {
 
   static getChampionIconUrl(
     version: string,
-    imageFull: ChampionsResponseType["data"][number]["image"]["full"],
+    imageFull: ChampionsResponseType["data"][number]["image"]["full"]
   ) {
     return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${imageFull}`;
   }
@@ -78,36 +83,47 @@ export class DDragonService {
   static getChampionIconUrlFromParticipant(
     champions: ChampionsResponseType["data"],
     version: string,
-    p: Pick<MatchSummonerRowType, "championId">,
+    p: Pick<MatchSummonerRowType, "championId">
   ) {
-    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champions[p.championId]!.image.full}`;
+    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${
+      champions[p.championId]!.image.full
+    }`;
   }
 
   static getChampionSplash(
     champions: ChampionsResponseType["data"],
-    championId: MatchSummonerRowType["championId"],
+    championId: MatchSummonerRowType["championId"]
   ) {
-    return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champions[championId]!.id}_0.jpg`;
+    return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
+      champions[championId]!.id
+    }_0.jpg`;
   }
 
   static getChampionLoadingScreenImage(
     champions: ChampionsResponseType["data"],
-    championId: MatchSummonerRowType["championId"],
+    championId: MatchSummonerRowType["championId"]
   ) {
-    return `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champions[championId]!.id}_0.jpg`;
+    return `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${
+      champions[championId]!.id
+    }_0.jpg`;
   }
 
   static getSummonerSpellIconUrl(
     summoner_spells: FormattedSummonerSpellsType,
     version: string,
-    id: MatchSummonerRowType["spellIds"][number],
+    id: MatchSummonerRowType["spellIds"][number]
   ) {
-    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${summoner_spells[id]!.image.full}`;
+    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${
+      summoner_spells[id]!.image.full
+    }`;
   }
 
   static async getProfileIcons(version: string) {
     const data = await ky
-      .get(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/profileicon.json`, {})
+      .get(
+        `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/profileicon.json`,
+        {}
+      )
       .json<ProfileIconType>();
 
     return Object.entries(data.data).map(([, value]) => {
@@ -121,14 +137,17 @@ export class DDragonService {
   static async getChampionData(version: string, stringId: string) {
     const data = await ky
       .get(
-        `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion/${stringId}.json`,
+        `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion/${stringId}.json`
       )
       .json();
 
     return v.parse(DDragonChampionFileSchema, data);
   }
 
-  static getChampionStringId(champions: ChampionsResponseType["data"], championId: number) {
+  static getChampionStringId(
+    champions: ChampionsResponseType["data"],
+    championId: number
+  ) {
     return champions[championId]!.id;
   }
 
