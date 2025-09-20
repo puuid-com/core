@@ -27,6 +27,11 @@ export const serverEnv = createEnv({
     DATABASE_CRT: v.string(),
 
     BETTER_AUTH_URL: v.string(),
+
+    PUUID_CORE_DEBUG: v.pipe(
+      v.picklist(["TRUE", "FALSE"]),
+      v.transform((v) => v === "TRUE")
+    ),
   },
   extends: [],
   runtimeEnv: process.env,

@@ -41,24 +41,23 @@ export const db = drizzle({
     ...userPageSchema,
     ...userPageStatisticSchema,
   },
-  logger:
-    process.env.NODE_ENV === "ddevelopment"
-      ? {
-          logQuery(query: string, params: unknown[]) {
-            console.log("=".repeat(60));
+  logger: serverEnv.PUUID_CORE_DEBUG
+    ? {
+        logQuery(query: string, params: unknown[]) {
+          console.log("=".repeat(60));
 
-            console.log("\n\x1b[32m[Drizzle]\x1b[0m\n");
+          console.log("\n\x1b[32m[Drizzle]\x1b[0m\n");
 
-            console.log(`Query:\n${query}\n`);
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (params && params.length > 0) {
-              console.log(`Params:\n${JSON.stringify(params, null, 2)}\n`);
-            }
+          console.log(`Query:\n${query}\n`);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (params && params.length > 0) {
+            console.log(`Params:\n${JSON.stringify(params, null, 2)}\n`);
+          }
 
-            console.log("=".repeat(60));
-          },
-        }
-      : false,
+          console.log("=".repeat(60));
+        },
+      }
+    : false,
 });
 
 export type TransactionType = Parameters<

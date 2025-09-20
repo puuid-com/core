@@ -2,6 +2,7 @@ import { RiotAPIRateLimiter } from "@/server/api-route/riot/RiotRateLimiter";
 import { lolClient } from "@/private/lolClient";
 import { type Options } from "ky";
 import * as v from "valibot";
+import { serverEnv } from "@/server/lib/env/server";
 
 type Schema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -32,6 +33,10 @@ export class RiotApiRoute<S extends Schema, P> {
     };
 
     const url = this.configs.getUrl(param);
+
+    if (serverEnv.PUUID_CORE_DEBUG) {
+      console.log(`> <${url}>`);
+    }
 
     return await lolClient(url, options).json<unknown>();
   }
