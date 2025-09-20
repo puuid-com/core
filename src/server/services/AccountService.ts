@@ -1,9 +1,9 @@
-import type { AccountDTOType } from "@/server/api-route/riot/account/AccountDTO";
+import type { AccountDTOType } from "@/shared/types/dto/AccountDTO";
 import {
   AcountRegionV1ByPuuid,
   AcountV1ByPuuid,
   AcountV1ByRiotID,
-} from "@/server/api-route/riot/account/AccountRoutes";
+} from "@/server/api-route/riot/AccountRoutes";
 
 export class AccountService {
   static async getAccountRegion(puuid: AccountDTOType["puuid"]) {
@@ -13,7 +13,9 @@ export class AccountService {
     });
   }
 
-  static async getAccountByRiotID(options: Pick<AccountDTOType, "gameName" | "tagLine">) {
+  static async getAccountByRiotID(
+    options: Pick<AccountDTOType, "gameName" | "tagLine">
+  ) {
     return AcountV1ByRiotID.call({
       routingValue: "europe",
       ...options,

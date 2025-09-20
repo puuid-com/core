@@ -1,4 +1,4 @@
-import type { LolTierType } from "@/server/types/riot/common";
+import type { LolTierType } from "@/shared/types/riot/common";
 
 export class CDragonService {
   private static LATEST_PATCH = "latest";
@@ -13,17 +13,26 @@ export class CDragonService {
   }
 
   // /:patch/champion/:championKey|:championId/square
-  static getChampionSquare(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionSquare(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/square`;
   }
 
   // /:patch/champion/:championKey|:championId/data
-  static getChampionData(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionData(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/data`;
   }
 
   // /:patch/champion/:championKey|:championId/splash-art
-  static getChampionSplashArt(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionSplashArt(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/splash-art`;
   }
 
@@ -31,7 +40,7 @@ export class CDragonService {
   static getChampionSplashArtSkin(
     champion: string | number,
     skinId: number,
-    patch = "latest",
+    patch = "latest"
   ): string {
     return `${this.base(patch)}/champion/${champion}/splash-art/skin/${skinId}`;
   }
@@ -39,7 +48,7 @@ export class CDragonService {
   // /:patch/champion/:championKey|:championId/splash-art/centered
   static getChampionSplashArtCentered(
     champion: string | number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `${this.base(patch)}/champion/${champion}/splash-art/centered`;
   }
@@ -48,15 +57,17 @@ export class CDragonService {
   static getChampionSplashArtCenteredSkin(
     champion: string | number,
     skinId: number,
-    patch = "latest",
+    patch = "latest"
   ): string {
-    return `${this.base(patch)}/champion/${champion}/splash-art/centered/skin/${skinId}`;
+    return `${this.base(
+      patch
+    )}/champion/${champion}/splash-art/centered/skin/${skinId}`;
   }
 
   // /:patch/champion/:championKey|:championId/champ-select/sounds/ban
   static getChampionChampSelectSoundsBan(
     champion: string | number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `${this.base(patch)}/champion/${champion}/champ-select/sounds/ban`;
   }
@@ -64,21 +75,26 @@ export class CDragonService {
   // /:patch/champion/:championKey|:championId/champ-select/sounds/choose
   static getChampionChampSelectSoundsChoose(
     champion: string | number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
-    return `${this.base(patch)}/champion/${champion}/champ-select/sounds/choose`;
+    return `${this.base(
+      patch
+    )}/champion/${champion}/champ-select/sounds/choose`;
   }
 
   // /:patch/champion/:championKey|:championId/champ-select/sounds/sfx
   static getChampionChampSelectSoundsSfx(
     champion: string | number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `${this.base(patch)}/champion/${champion}/champ-select/sounds/sfx`;
   }
 
   // /:patch/champion/:championKey|:championId/tile
-  static getChampionTile(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionTile(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/tile`;
   }
 
@@ -86,13 +102,16 @@ export class CDragonService {
   static getChampionTileSkin(
     champion: string | number,
     skinId: number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `${this.base(patch)}/champion/${champion}/tile/skin/${skinId}`;
   }
 
   // /:patch/champion/:championKey|:championId/portrait
-  static getChampionPortrait(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionPortrait(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/portrait`;
   }
 
@@ -100,7 +119,7 @@ export class CDragonService {
   static getChampionPortraitSkin(
     champion: string | number,
     skinId: number,
-    patch = "latest",
+    patch = "latest"
   ): string {
     return `${this.base(patch)}/champion/${champion}/portrait/skin/${skinId}`;
   }
@@ -108,33 +127,48 @@ export class CDragonService {
   // /:patch/champion/:championKey|:championId/ability-icon/passive
   static getChampionAbilityIconPassive(
     champion: string | number,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/passive`;
   }
 
   // /:patch/champion/:championKey|:championId/ability-icon/p
-  static getChampionAbilityIconP(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionAbilityIconP(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/p`;
   }
 
   // /:patch/champion/:championKey|:championId/ability-icon/q
-  static getChampionAbilityIconQ(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionAbilityIconQ(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/q`;
   }
 
   // /:patch/champion/:championKey|:championId/ability-icon/w
-  static getChampionAbilityIconW(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionAbilityIconW(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/w`;
   }
 
   // /:patch/champion/:championKey|:championId/ability-icon/e
-  static getChampionAbilityIconE(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionAbilityIconE(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/e`;
   }
 
   // /:patch/champion/:championKey|:championId/ability-icon/r
-  static getChampionAbilityIconR(champion: string | number, patch = this.LATEST_PATCH): string {
+  static getChampionAbilityIconR(
+    champion: string | number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/champion/${champion}/ability-icon/r`;
   }
 
@@ -154,7 +188,11 @@ export class CDragonService {
   }
 
   // /:patch/honor/:honorId/level/:level
-  static getHonorLevel(honorId: number, level: number, patch = this.LATEST_PATCH): string {
+  static getHonorLevel(
+    honorId: number,
+    level: number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/honor/${honorId}/level/${level}`;
   }
 
@@ -169,12 +207,19 @@ export class CDragonService {
   }
 
   // /:patch/honor/emblem/:honorId/locked
-  static getHonorEmblemLocked(honorId: number, patch = this.LATEST_PATCH): string {
+  static getHonorEmblemLocked(
+    honorId: number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/honor/emblem/${honorId}/locked`;
   }
 
   // /:patch/honor/emblem/:honorId/level/:level
-  static getHonorEmblemLevel(honorId: number, level: number, patch = this.LATEST_PATCH): string {
+  static getHonorEmblemLevel(
+    honorId: number,
+    level: number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/honor/emblem/${honorId}/level/${level}`;
   }
 
@@ -189,19 +234,24 @@ export class CDragonService {
   }
 
   // /:patch/profile-icon/:profileIconId
-  static getProfileIcon(profileIconId: number, patch = this.LATEST_PATCH): string {
+  static getProfileIcon(
+    profileIconId: number,
+    patch = this.LATEST_PATCH
+  ): string {
     return `${this.base(patch)}/profile-icon/${profileIconId}`;
   }
 
   static getRankMiniIcon(rank: LolTierType, patch = this.LATEST_PATCH): string {
-    return `${this.base(patch)}/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${rank.toLowerCase()}.svg`;
+    return `${this.base(
+      patch
+    )}/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${rank.toLowerCase()}.svg`;
   }
 
   // /:patch/champion/:championKey|:championId/spell/:spellKey
   static getChampionSpell(
     champion: string | number,
     spellKey: string,
-    patch = this.LATEST_PATCH,
+    patch = this.LATEST_PATCH
   ): string {
     return `https://cdn.communitydragon.org/${patch}/champion/${champion}/ability-icon/${spellKey}`;
   }

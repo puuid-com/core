@@ -1,5 +1,5 @@
 import { RiotAPIRateLimiter } from "@/server/api-route/riot/RiotRateLimiter";
-import { lolClient } from "@/shared";
+import { lolClient } from "@/private/lolClient";
 import { type Options } from "ky";
 import * as v from "valibot";
 

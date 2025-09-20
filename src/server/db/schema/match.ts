@@ -1,6 +1,13 @@
-import { pgTable, text, integer, boolean, bigint, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  boolean,
+  bigint,
+  index,
+} from "drizzle-orm/pg-core";
 import { desc, relations, type InferSelectModel } from "drizzle-orm";
-import type { LolPositionType } from "@/server/api-route/riot/match/MatchDTO";
+import type { LolPositionType } from "@/shared/types/dto/MatchDTO";
 import { matchCommentTable } from "@/server/db/schema/match-comments";
 import { summonerTable } from "@/server/db/schema/summoner";
 
@@ -20,7 +27,7 @@ export const matchTable = pgTable(
   (t) => [
     index("idx_match_game_time").on(t.gameCreationMs, t.matchId),
     index("idx_match_queue_time").on(t.queueId, t.gameCreationMs),
-  ],
+  ]
 );
 
 export type MatchRowType = typeof matchTable.$inferSelect;
@@ -51,7 +58,9 @@ export const matchSummonerTable = pgTable(
     deaths: integer("deaths").notNull(),
     assists: integer("assists").notNull(),
 
-    totalDamageDealtToChampions: integer("total_damage_dealt_to_champions").notNull(),
+    totalDamageDealtToChampions: integer(
+      "total_damage_dealt_to_champions"
+    ).notNull(),
     totalDamageTaken: integer("total_damage_taken").notNull(),
 
     championId: integer("champion_id").notNull(),
@@ -77,24 +86,31 @@ export const matchSummonerTable = pgTable(
     index("idx_fms_match").on(t.matchId),
     index("idx_fms_puuid").on(t.puuid),
     index("idx_ms_puuid_matchid").on(t.puuid, t.matchId),
-    index("idx_ms_puuid_matchid_gameCreationMs").on(t.puuid, t.matchId, desc(t.gameCreationMs)),
-  ],
+    index("idx_ms_puuid_matchid_gameCreationMs").on(
+      t.puuid,
+      t.matchId,
+      desc(t.gameCreationMs)
+    ),
+  ]
 );
 
 export type MatchSummonerRowType = typeof matchSummonerTable.$inferSelect;
 export type MatchSummonerInsertType = typeof matchSummonerTable.$inferInsert;
 
-export const matchSummonerRelations = relations(matchSummonerTable, ({ one, many }) => ({
-  match: one(matchTable, {
-    fields: [matchSummonerTable.matchId],
-    references: [matchTable.matchId],
-  }),
-  comments: many(matchCommentTable),
-  summoner: one(summonerTable, {
-    fields: [matchSummonerTable.puuid],
-    references: [summonerTable.puuid],
-  }),
-}));
+export const matchSummonerRelations = relations(
+  matchSummonerTable,
+  ({ one, many }) => ({
+    match: one(matchTable, {
+      fields: [matchSummonerTable.matchId],
+      references: [matchTable.matchId],
+    }),
+    comments: many(matchCommentTable),
+    summoner: one(summonerTable, {
+      fields: [matchSummonerTable.puuid],
+      references: [summonerTable.puuid],
+    }),
+  })
+);
 
 export type MatchWithSummonersType = InferSelectModel<typeof matchTable> & {
   summoners: InferSelectModel<typeof matchSummonerTable>[];

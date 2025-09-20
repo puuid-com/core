@@ -1,8 +1,8 @@
 import { RiotApiRoute } from "@/server/api-route/ApiRoute";
-import { ActiveGameResponseSchema } from "@/server/api-route/riot/spectator/ActiveGameDTO";
-import { FeaturedGamesDTOSchema } from "@/server/api-route/riot/spectator/FeaturedGamesDTO";
+import { ActiveGameResponseSchema } from "@/shared/types/dto/ActiveGameDTO";
+import { FeaturedGamesDTOSchema } from "@/shared/types/dto/FeaturedGamesDTO";
 import type { SummonerType } from "@/server/db/schema/summoner";
-import type { LolRegionType } from "@/server/types/riot/common";
+import type { LolRegionType } from "@/shared/types/riot/common";
 
 export const SpectatorFeaturedGamesRoute = new RiotApiRoute({
   getUrl: (params: { region: LolRegionType }) =>

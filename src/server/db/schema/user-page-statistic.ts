@@ -1,5 +1,5 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
-import type { LolPositionType } from "@/server/api-route/riot/match/MatchDTO";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
+import type { LolPositionType } from "@/shared/types/dto/MatchDTO";
 import type {
   StatsByTeammate,
   StatsByChampionId,

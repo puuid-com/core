@@ -1,6 +1,6 @@
 {
   "name": "@puuid/core",
-  "version": "0.1.13",
+  "version": "0.1.22",
   "description": "Core utilities for puuid.com",
   "type": "module",
   "main": "./dist/index.js",
@@ -70,14 +70,6 @@
     "./server/services/*": {
       "import": "./dist/server/services/*.js",
       "types": "./dist/server/services/*.d.ts"
-    },
-    "./server/types": {
-      "import": "./dist/server/types/index.js",
-      "types": "./dist/server/types/index.d.ts"
-    },
-    "./server/types/*": {
-      "import": "./dist/server/types/*.js",
-      "types": "./dist/server/types/*.d.ts"
     }
   },
   "files": [
@@ -85,12 +77,14 @@
   ],
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "prebuild": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true });\"",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json && node ./scripts/fix-esm.mjs",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "publish:npm": "npm publish --access public",
     "create-migration": "bunx drizzle-kit generate",
-    "migrate": "npx drizzle-kit migrate"
+    "migrate": "npx drizzle-kit migrate",
+    "db:studio": "npx drizzle-kit studio"
   },
   "keywords": [
     "puuid",

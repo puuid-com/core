@@ -24,10 +24,17 @@ const PerksSchema = v.object({
   styles: v.array(PerkStyleSchema),
 });
 
-export const LolPositions = ["BOTTOM", "JUNGLE", "MIDDLE", "TOP", "UTILITY", ""] as const;
+export const LolPositions = [
+  "BOTTOM",
+  "JUNGLE",
+  "MIDDLE",
+  "TOP",
+  "UTILITY",
+  "",
+] as const;
 export type LolPositionType = (typeof LolPositions)[number];
 
-export const ParticipantDTOSchema = v.object({
+export const MatchParticipantDTOSchema = v.object({
   assists: v.number(),
   baronKills: v.number(),
   basicPings: v.number(),
@@ -91,7 +98,9 @@ export const ParticipantDTOSchema = v.object({
   wardsKilled: v.number(),
   win: v.boolean(),
 });
-export type MatchParticipantDTOType = v.InferOutput<typeof ParticipantDTOSchema>;
+export type MatchParticipantDTOType = v.InferOutput<
+  typeof MatchParticipantDTOSchema
+>;
 
 const BanSchema = v.object({
   championId: v.number(),
@@ -121,7 +130,7 @@ const InfoSchema = v.object({
   gameType: v.string(),
   gameVersion: v.string(),
   mapId: v.number(),
-  participants: v.array(ParticipantDTOSchema),
+  participants: v.array(MatchParticipantDTOSchema),
   platformId: v.string(),
   queueId: v.number(),
   teams: v.array(TeamSchema),

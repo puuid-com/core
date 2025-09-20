@@ -1,7 +1,7 @@
 import { RiotApiRoute } from "@/server/api-route/ApiRoute";
-import type { AccountDTOType } from "@/server/api-route/riot/account/AccountDTO";
-import { LeagueDTOSchema } from "@/server/api-route/riot/league/LeagueDTO";
-import type { LolRegionType } from "@/server/types/riot/common";
+import type { AccountDTOType } from "@/shared/types/dto/AccountDTO";
+import { LeagueDTOSchema } from "@/shared/types/dto/LeagueDTO";
+import type { LolRegionType } from "@/shared/types/riot/common";
 import * as v from "valibot";
 
 export const LeagueV4ByPuuid = new RiotApiRoute({

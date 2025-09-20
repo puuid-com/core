@@ -1,4 +1,4 @@
-import { LolRegions } from "@/server/types/riot/common";
+import { LolRegions } from "@/shared/types/riot/common";
 import * as v from "valibot";
 
 export const AccountDTOSchema = v.object({

@@ -1,4 +1,4 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import { db, type TransactionType } from "@/server/db";
 import type { MatchWithSummonersType } from "@/server/db/schema/match";
 import { averageBy, maxItemBy } from "@/server/lib";
@@ -15,7 +15,7 @@ import {
 import { ServerColorsService } from "@/server/services/ServerColorsService";
 import { LeagueService } from "@/server/services/league/LeagueService";
 import { MatchService } from "@/server/services/match/MatchService";
-import { LOL_QUEUES } from "@/server/services/match/queues";
+import { LOL_QUEUES } from "@/shared/types/riot/queues";
 
 export type Stat = {
   wins: number;
@@ -66,28 +66,40 @@ export class StatisticService {
 
   static async getSummonerStatisticWithLeague(
     puuid: SummonerType["puuid"],
-    queueType: LolQueueType,
+    queueType: LolQueueType
   ): Promise<StatisticWithLeagueType | undefined> {
     return db.query.statisticTable.findFirst({
-      where: and(eq(statisticTable.puuid, puuid), eq(statisticTable.queueType, queueType)),
+      where: and(
+        eq(statisticTable.puuid, puuid),
+        eq(statisticTable.queueType, queueType)
+      ),
       with: {
         league: true,
       },
     });
   }
 
-  static async getSummonerStatistic(puuid: SummonerType["puuid"], queueType: LolQueueType) {
+  static async getSummonerStatistic(
+    puuid: SummonerType["puuid"],
+    queueType: LolQueueType
+  ) {
     return db.query.statisticTable.findFirst({
-      where: and(eq(statisticTable.puuid, puuid), eq(statisticTable.queueType, queueType)),
+      where: and(
+        eq(statisticTable.puuid, puuid),
+        eq(statisticTable.queueType, queueType)
+      ),
     });
   }
 
   public static async getSummonersStatisticWithLeagye(
     puuids: SummonerType["puuid"][],
-    queueType: LolQueueType,
+    queueType: LolQueueType
   ) {
     return db.query.statisticTable.findMany({
-      where: and(eq(statisticTable.queueType, queueType), inArray(statisticTable.puuid, puuids)),
+      where: and(
+        eq(statisticTable.queueType, queueType),
+        inArray(statisticTable.puuid, puuids)
+      ),
       with: {
         league: true,
       },
@@ -95,7 +107,10 @@ export class StatisticService {
   }
 
   static shouldRefreshStatistic(statistic: StatisticRowType) {
-    return Date.now() - statistic.refreshedAt.getTime() > this.TIME_BEFORE_FORCED_REFRESH;
+    return (
+      Date.now() - statistic.refreshedAt.getTime() >
+      this.TIME_BEFORE_FORCED_REFRESH
+    );
   }
 
   static async batchRefreshSummonerStatitisticsTx(
@@ -105,28 +120,30 @@ export class StatisticService {
       matches: MatchWithSummonersType[];
     }[],
     queueType: LolQueueType,
-    forceRefresh: boolean,
+    forceRefresh: boolean
   ) {
     const oldStats = await this.getSummonersStatisticWithLeagye(
       summonersData.map((data) => data.summoner.puuid),
-      queueType,
+      queueType
     );
 
     const oldStatsToKeep: StatisticWithLeagueType[] = [];
 
     if (!forceRefresh) {
-      oldStatsToKeep.push(...oldStats.filter((s) => !this.shouldRefreshStatistic(s)));
+      oldStatsToKeep.push(
+        ...oldStats.filter((s) => !this.shouldRefreshStatistic(s))
+      );
     }
 
     if (oldStatsToKeep.length !== summonersData.length) {
       const notMissingPuuids = oldStatsToKeep.map((s) => s.puuid);
       const missingSummoners = summonersData.filter(
-        (data) => !notMissingPuuids.includes(data.summoner.puuid),
+        (data) => !notMissingPuuids.includes(data.summoner.puuid)
       );
 
       const leagues = await LeagueService.batchCacheLeaguesBySummonersTx(
         tx,
-        missingSummoners.map((d) => d.summoner),
+        missingSummoners.map((d) => d.summoner)
       );
 
       const createdStatistics = await Promise.all(
@@ -136,16 +153,18 @@ export class StatisticService {
             queueType,
             leagues.filter((l) => l.puuid === data.summoner.puuid),
             data.matches,
-            undefined,
-          ),
-        ),
+            undefined
+          )
+        )
       );
 
       await this.saveSummonerStatisticsTx(
         tx,
-        createdStatistics.map((s) => s._toInsert).filter((s) => s !== null),
+        createdStatistics.map((s) => s._toInsert).filter((s) => s !== null)
       );
-      oldStatsToKeep.push(...createdStatistics.map((s) => s.stats).filter((s) => s !== null));
+      oldStatsToKeep.push(
+        ...createdStatistics.map((s) => s.stats).filter((s) => s !== null)
+      );
     }
 
     return {
@@ -155,7 +174,7 @@ export class StatisticService {
 
   private static async saveSummonerStatisticsTx(
     tx: TransactionType,
-    statistics: InsertStatisticRowType[],
+    statistics: InsertStatisticRowType[]
   ) {
     return await tx
       .insert(statisticTable)
@@ -172,7 +191,7 @@ export class StatisticService {
     queueType: LolQueueType,
     forceRefresh: boolean,
     cachedLeagues?: LeagueRowType[],
-    cachedMatches?: MatchWithSummonersType[],
+    cachedMatches?: MatchWithSummonersType[]
   ) {
     const oldStats = await this.getSummonerStatistic(summoner.puuid, queueType);
     const oldStatsRefreshedAt = oldStats?.refreshedAt;
@@ -190,24 +209,24 @@ export class StatisticService {
     }
 
     cachedLeagues ??= await LeagueService.cacheLeaguesTx(tx, summoner);
-    cachedMatches ??= await MatchService.getMatchesDBByPuuidFull(
-      summoner,
-      {
-        count: this.MATCHES_COUNTED,
-        queue: LOL_QUEUES[queueType].queueId,
-      },
-      "NORMAL",
-    );
+    cachedMatches ??= (
+      await MatchService.getMatchesDBByPuuidFull(summoner, {
+        queueId: LOL_QUEUES[queueType].queueId,
+        limit: this.MATCHES_COUNTED,
+        resultType: "NORMAL",
+      })
+    ).data;
 
     const stats = await this.createSummonerStatistic(
       summoner,
       queueType,
       cachedLeagues,
       cachedMatches,
-      oldStats,
+      oldStats
     );
 
-    if (stats._toInsert) await this.saveSummonerStatisticsTx(tx, [stats._toInsert]);
+    if (stats._toInsert)
+      await this.saveSummonerStatisticsTx(tx, [stats._toInsert]);
 
     return {
       stats: stats.stats,
@@ -220,7 +239,7 @@ export class StatisticService {
     queueType: LolQueueType,
     cachedLeagues: LeagueRowType[],
     cachedMatches: MatchWithSummonersType[],
-    oldStats: StatisticRowType | undefined,
+    oldStats: StatisticRowType | undefined
   ): Promise<{
     stats: StatisticWithLeagueType | null;
     lastMatch: MatchWithSummonersType | undefined;
@@ -255,10 +274,14 @@ export class StatisticService {
     };
 
     const stats = matches.reduce((acc, curr) => {
-      const mainSummoner = curr.summoners.find((s) => s.puuid === summoner.puuid);
+      const mainSummoner = curr.summoners.find(
+        (s) => s.puuid === summoner.puuid
+      );
       if (!mainSummoner) return acc;
 
-      const vs = curr.summoners.find((s) => s.puuid === mainSummoner.vsSummonerPuuid);
+      const vs = curr.summoners.find(
+        (s) => s.puuid === mainSummoner.vsSummonerPuuid
+      );
       if (!vs) return acc;
 
       const incWins = mainSummoner.win ? 1 : 0;
@@ -272,7 +295,9 @@ export class StatisticService {
       acc.losses += incLosses;
 
       {
-        const s = acc.statsByChampionId.find((s) => s.championId === mainSummoner.championId);
+        const s = acc.statsByChampionId.find(
+          (s) => s.championId === mainSummoner.championId
+        );
         if (!s) {
           acc.statsByChampionId.push({
             championId: mainSummoner.championId,
@@ -293,7 +318,9 @@ export class StatisticService {
 
       // statsByIndividualPosition, incrémente ou crée
       {
-        const s = acc.statsByPosition.find((s) => s.position === mainSummoner.position);
+        const s = acc.statsByPosition.find(
+          (s) => s.position === mainSummoner.position
+        );
         if (!s) {
           acc.statsByPosition.push({
             position: mainSummoner.position,
@@ -314,7 +341,9 @@ export class StatisticService {
 
       // statsByOppositeIndividualPositionChampionId, incrémente ou crée
       {
-        const s = acc.statsByOppositePositionChampionId.find((s) => s.championId === vs.championId);
+        const s = acc.statsByOppositePositionChampionId.find(
+          (s) => s.championId === vs.championId
+        );
         if (!s) {
           acc.statsByOppositePositionChampionId.push({
             championId: vs.championId,
@@ -335,10 +364,15 @@ export class StatisticService {
 
       {
         curr.summoners.forEach((summoner) => {
-          if (mainSummoner.teamId !== summoner.teamId || summoner.puuid === mainSummoner.puuid)
+          if (
+            mainSummoner.teamId !== summoner.teamId ||
+            summoner.puuid === mainSummoner.puuid
+          )
             return;
 
-          const _s = acc.statsByTeammates.find((s) => summoner.puuid === s.puuid);
+          const _s = acc.statsByTeammates.find(
+            (s) => summoner.puuid === s.puuid
+          );
 
           if (!_s) {
             acc.statsByTeammates.push({
@@ -356,7 +390,8 @@ export class StatisticService {
       acc.averageAssistPerGame.push(mainSummoner.assists);
       acc.averageDeathPerGame.push(mainSummoner.deaths);
       acc.averageKda.push(
-        (mainSummoner.kills + mainSummoner.assists) / Math.max(1, mainSummoner.deaths),
+        (mainSummoner.kills + mainSummoner.assists) /
+          Math.max(1, mainSummoner.deaths)
       );
       acc.averageKillPerGame.push(mainSummoner.kills);
 
@@ -365,7 +400,7 @@ export class StatisticService {
 
     const mainChampionId = maxItemBy(
       stats.statsByChampionId,
-      (item) => item.losses + item.wins,
+      (item) => item.losses + item.wins
     ).championId;
 
     const sameMainChampion = oldStats?.mainChampionId === mainChampionId;
@@ -380,7 +415,9 @@ export class StatisticService {
         }
       : await ServerColorsService.getMainColorsFromChampion(mainChampionId);
 
-    const mainChampionSkinId = sameMainChampion ? oldStats.mainChampionSkinId : undefined;
+    const mainChampionSkinId = sameMainChampion
+      ? oldStats.mainChampionSkinId
+      : undefined;
 
     const statsToInsert: StatisticRowType = {
       puuid: summoner.puuid,
@@ -391,7 +428,10 @@ export class StatisticService {
       kills: stats.kills,
       assists: stats.assists,
       deaths: stats.deaths,
-      averageAssistPerGame: averageBy(stats.averageAssistPerGame, (item) => item),
+      averageAssistPerGame: averageBy(
+        stats.averageAssistPerGame,
+        (item) => item
+      ),
       averageDeathPerGame: averageBy(stats.averageDeathPerGame, (item) => item),
       averageKda: averageBy(stats.averageKda, (item) => item),
       averageKillPerGame: averageBy(stats.averageKillPerGame, (item) => item),
@@ -413,7 +453,10 @@ export class StatisticService {
       mainChampionBackgroundColor: mainChampionBackgroundColor ?? null,
       mainChampionSkinId: mainChampionSkinId ?? 0,
 
-      mainPosition: maxItemBy(stats.statsByPosition, (item) => item.losses + item.wins).position,
+      mainPosition: maxItemBy(
+        stats.statsByPosition,
+        (item) => item.losses + item.wins
+      ).position,
 
       wins: stats.wins,
       losses: stats.losses,
@@ -424,7 +467,10 @@ export class StatisticService {
     return {
       stats: {
         ...statsToInsert,
-        league: cachedLeagues.find((l) => l.id === statsToInsert.latestLeagueEntryId) ?? null,
+        league:
+          cachedLeagues.find(
+            (l) => l.id === statsToInsert.latestLeagueEntryId
+          ) ?? null,
       },
       lastMatch: matches.at(0),
       _toInsert: statsToInsert,
@@ -434,10 +480,13 @@ export class StatisticService {
   static async changeMainChampionColors(
     puuid: SummonerType["puuid"],
     queueType: LolQueueType,
-    skinId: number,
+    skinId: number
   ) {
     const stats = await db.query.statisticTable.findFirst({
-      where: and(eq(statisticTable.puuid, puuid), eq(statisticTable.queueType, queueType)),
+      where: and(
+        eq(statisticTable.puuid, puuid),
+        eq(statisticTable.queueType, queueType)
+      ),
     });
 
     if (!stats) {
@@ -449,7 +498,10 @@ export class StatisticService {
 
     try {
       const { backgroundColor, foregroundColor } =
-        await ServerColorsService.getMainColorsFromChampionSkin(stats.mainChampionId, skinId);
+        await ServerColorsService.getMainColorsFromChampionSkin(
+          stats.mainChampionId,
+          skinId
+        );
 
       mainChampionBackgroundColor = backgroundColor;
       mainChampionForegroundColor = foregroundColor;
@@ -466,7 +518,12 @@ export class StatisticService {
         mainChampionForegroundColor,
         mainChampionSkinId: skinId,
       })
-      .where(and(eq(statisticTable.puuid, puuid), eq(statisticTable.queueType, queueType)))
+      .where(
+        and(
+          eq(statisticTable.puuid, puuid),
+          eq(statisticTable.queueType, queueType)
+        )
+      )
       .returning();
   }
 }

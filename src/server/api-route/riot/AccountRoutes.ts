@@ -3,8 +3,8 @@ import {
   AccountDTOSchema,
   AccountRegionDTOSchema,
   type AccountDTOType,
-} from "@/server/api-route/riot/account/AccountDTO";
-import type { LolRoutingValueType } from "@/server/types/riot/common";
+} from "@/shared/types/dto/AccountDTO";
+import type { LolRoutingValueType } from "@/shared/types/riot/common";
 
 export const AcountRegionV1ByPuuid = new RiotApiRoute({
   getUrl: (params: {

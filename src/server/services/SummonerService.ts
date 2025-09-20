@@ -2,13 +2,12 @@ import { db, type TransactionType } from "@/server/db";
 import type {
   AccountDTOType,
   AccountRegionDTOType,
-} from "@/server/api-route/riot/account/AccountDTO";
+} from "@/shared/types/dto/AccountDTO";
 import { AccountService } from "@/server/services/AccountService";
-import { getPartsFromRiotID } from "@/server/services/summoner/utils";
 import { SummonerDTOService } from "@/server/services/SummonrtDTOService";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { normalizeRiotID, trimRiotID } from "@/lib/riotID";
-import type { SummonerDTOType } from "@/server/api-route/riot/summoner/SummonerDTO";
+import type { SummonerDTOType } from "@/shared/types/dto/SummonerDTO";
 import {
   summonerTable,
   type SummonerType,
@@ -17,6 +16,21 @@ import {
 } from "@/server/db/schema/summoner";
 import type { User } from "better-auth";
 import { noteTable } from "@/server/db/schema/note";
+
+export const getPartsFromRiotID = (riotID: string) => {
+  const [gameName, tagLine] = riotID.split("#");
+
+  if (!gameName || !tagLine) {
+    throw new Error("Invalid Summoner Name : " + trimRiotID);
+  }
+
+  return {
+    nornalizedRiotId: normalizeRiotID(riotID),
+    riotId: trimRiotID(riotID),
+    gameName,
+    tagLine,
+  };
+};
 
 export class SummonerService {
   static async getSummonersWithRelations(search?: string) {

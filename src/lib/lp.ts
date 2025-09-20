@@ -1,5 +1,5 @@
 import type { LeagueRowType } from "@/server/db/schema/league";
-import type { LolRankType, LolTierType } from "@/server/types";
+import type { LolRankType, LolTierType } from "@/shared/types";
 
 const RANK_OFFSETS: Record<LolRankType, number> = {
   IV: 0,

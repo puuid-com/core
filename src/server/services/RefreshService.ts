@@ -1,10 +1,13 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import { db, type TransactionType } from "@/server/db";
-import type { MatchRowType, MatchWithSummonersType } from "@/server/db/schema/match";
+import type {
+  MatchRowType,
+  MatchWithSummonersType,
+} from "@/server/db/schema/match";
 import { pipeStep } from "@/server/lib/generator";
-import { SummonerService } from "@/server/services/summoner/SummonerService";
+import { SummonerService } from "@/server/services/SummonerService";
 import { LeagueService } from "@/server/services/league/LeagueService";
-import { LOL_QUEUES } from "@/server/services/match/queues";
+import { LOL_QUEUES } from "@/shared/types/riot/queues";
 import { StatisticService } from "@/server/services/StatisticService";
 import { and, eq, sql } from "drizzle-orm";
 import type { LeagueRowType } from "@/server/db/schema/league";
@@ -53,9 +56,15 @@ export type RefreshProgressMsgType =
 export class RefreshService {
   private static MIN_SEC_BETWEEN_REFRESH = 1; // 1 sec
 
-  static async getLastRefresh(puuid: SummonerType["puuid"], queue: LolQueueType) {
+  static async getLastRefresh(
+    puuid: SummonerType["puuid"],
+    queue: LolQueueType
+  ) {
     return db.query.summonerRefresh.findFirst({
-      where: and(eq(summonerRefresh.puuid, puuid), eq(summonerRefresh.queueType, queue)),
+      where: and(
+        eq(summonerRefresh.puuid, puuid),
+        eq(summonerRefresh.queueType, queue)
+      ),
     });
   }
 
@@ -63,7 +72,8 @@ export class RefreshService {
     const lastRefresh = await this.getLastRefresh(puuid, queue);
     if (!lastRefresh) return true;
 
-    const secSinceLastRefresh = (new Date().getTime() - lastRefresh.refreshedAt.getTime()) / 1000;
+    const secSinceLastRefresh =
+      (new Date().getTime() - lastRefresh.refreshedAt.getTime()) / 1000;
 
     return secSinceLastRefresh > this.MIN_SEC_BETWEEN_REFRESH;
   }
@@ -72,7 +82,7 @@ export class RefreshService {
     puuid: SummonerType["puuid"],
     queue: LolQueueType,
     isFullRefresh: boolean,
-    lastMatchCreationMs: MatchRowType["gameCreationMs"] | null,
+    lastMatchCreationMs: MatchRowType["gameCreationMs"] | null
   ) {
     const lastGameCreationEpochSec = lastMatchCreationMs
       ? Math.floor(lastMatchCreationMs / 1000)
@@ -80,7 +90,12 @@ export class RefreshService {
 
     return db
       .insert(summonerRefresh)
-      .values({ puuid, lastGameCreationEpochSec, isFullRefresh, queueType: queue })
+      .values({
+        puuid,
+        lastGameCreationEpochSec,
+        isFullRefresh,
+        queueType: queue,
+      })
       .onConflictDoUpdate({
         target: [summonerRefresh.puuid],
         set: {
@@ -92,9 +107,12 @@ export class RefreshService {
 
   static async batchUpdateLastRefreshTx(
     tx: TransactionType,
-    dataBySummoner: { summoner: SummonerType; lastMatch: MatchWithSummonersType | undefined }[],
+    dataBySummoner: {
+      summoner: SummonerType;
+      lastMatch: MatchWithSummonersType | undefined;
+    }[],
     queueType: LolQueueType,
-    isFullRefresh: boolean,
+    isFullRefresh: boolean
   ) {
     const updades: InsertSummonerRefreshType[] = dataBySummoner.map((d) => {
       const lastGameCreationEpochSec = d.lastMatch?.gameCreationMs
@@ -124,7 +142,7 @@ export class RefreshService {
 
   static async *refreshSummonerData(
     puuid: SummonerType["puuid"],
-    queueType: LolQueueType,
+    queueType: LolQueueType
   ): AsyncGenerator<RefreshProgressMsgType, void, void> {
     const lastRefresh = await this.getLastRefresh(puuid, queueType);
 
@@ -134,53 +152,60 @@ export class RefreshService {
 
     // progressFetchSummoner()
     const { stream: $summonerStream, result: $summonerResult } = pipeStep(
-      this.progressFetchSummoner(puuid),
+      this.progressFetchSummoner(puuid)
     );
     for await (const msg of $summonerStream) yield msg;
     const summoner = await $summonerResult;
 
-    const lastGameCreationEpochSec = lastRefresh?.lastGameCreationEpochSec ?? null;
-    const shouldUseEpochSec = lastGameCreationEpochSec !== null && !!lastRefresh?.isFullRefresh;
+    const lastGameCreationEpochSec =
+      lastRefresh?.lastGameCreationEpochSec ?? null;
+    const shouldUseEpochSec =
+      lastGameCreationEpochSec !== null && !!lastRefresh?.isFullRefresh;
 
     // progressFetchMatches()
     const { stream: $matchesStream /* , result: $matchesResult */ } = pipeStep(
       this.progressFetchMatches(
         summoner,
         queueId,
-        shouldUseEpochSec ? lastGameCreationEpochSec : undefined,
-      ),
+        shouldUseEpochSec ? lastGameCreationEpochSec : undefined
+      )
     );
     for await (const msg of $matchesStream) yield msg;
     /* const matches = await $matchesResult;
      */
     // progressFetchLeagues()
     const { stream: $leaguesStream, result: $leaguesResult } = pipeStep(
-      this.progressFetchLeagues(summoner),
+      this.progressFetchLeagues(summoner)
     );
     for await (const msg of $leaguesStream) yield msg;
     const leagues = await $leaguesResult;
 
     // progressFetchStats()
     const { stream: $statsStream, result: $statsResult } = pipeStep(
-      this.progressFetchStats(summoner, queueType, leagues /* , matches */),
+      this.progressFetchStats(summoner, queueType, leagues /* , matches */)
     );
     for await (const msg of $statsStream) yield msg;
     const { lastMatch } = await $statsResult;
 
-    await this.updateLastRefresh(puuid, queueType, true, lastMatch?.gameCreationMs ?? null);
+    await this.updateLastRefresh(
+      puuid,
+      queueType,
+      true,
+      lastMatch?.gameCreationMs ?? null
+    );
 
     yield { status: "finished" };
   }
 
   private static async *progressFetchSummoner(
-    puuid: SummonerType["puuid"],
+    puuid: SummonerType["puuid"]
   ): AsyncGenerator<RefreshProgressMsgType, SummonerType, void> {
     yield { status: "step_started", step: "fetching_summoner" };
 
     yield { status: "step_in_progress", step: "fetching_summoner" };
 
     const summoner = await db.transaction((tx) =>
-      SummonerService.getOrCreateSummonerByPuuidTx(tx, puuid, true),
+      SummonerService.getOrCreateSummonerByPuuidTx(tx, puuid, true)
     );
 
     yield { status: "step_finished", step: "fetching_summoner" };
@@ -191,11 +216,17 @@ export class RefreshService {
   private static async *progressFetchMatches(
     id: Pick<SummonerType, "region" | "puuid">,
     queueId: MatchRowType["queueId"],
-    startTimeEpoch: number | undefined,
+    startTimeEpoch: number | undefined
   ): AsyncGenerator<RefreshProgressMsgType, MatchWithSummonersType[], void> {
-    const { MatchService } = await import("@/server/services/match/MatchService");
+    const { MatchService } = await import(
+      "@/server/services/match/MatchService"
+    );
 
-    const ids = await MatchService._getAllMatcheIdsDTOByPuuid(id, queueId, startTimeEpoch);
+    const ids = await MatchService._getAllMatcheIdsDTOByPuuid(
+      id,
+      queueId,
+      startTimeEpoch
+    );
 
     yield {
       status: "step_in_progress",
@@ -204,14 +235,20 @@ export class RefreshService {
     };
 
     if (ids.length === 0) {
-      yield { status: "step_finished", step: "fetching_matches", matchesFetched: 0 };
+      yield {
+        status: "step_finished",
+        step: "fetching_matches",
+        matchesFetched: 0,
+      };
 
       return [];
     }
 
     const alreadySaved = await MatchService.getMatchesDBByMatchIds(ids);
 
-    const notSavedIds = ids.filter((mid) => !alreadySaved.some((m) => m.matchId === mid));
+    const notSavedIds = ids.filter(
+      (mid) => !alreadySaved.some((m) => m.matchId === mid)
+    );
 
     if (alreadySaved.length > 0) {
       yield {
@@ -230,7 +267,9 @@ export class RefreshService {
       const end = Math.min(notSavedIds.length, start + batchSize);
       const slice = notSavedIds.slice(start, end);
 
-      const tasks = slice.map((mid) => MatchService.getMatchDTOById(mid, false));
+      const tasks = slice.map((mid) =>
+        MatchService.getMatchDTOById(mid, false)
+      );
 
       const newMatches = await Promise.all(tasks);
 
@@ -251,19 +290,25 @@ export class RefreshService {
       console.log(`Fetched batch ${b + 1}/${totalBatches}`);
     }
 
-    yield { status: "step_finished", step: "fetching_matches", matchesFetched: 0 };
+    yield {
+      status: "step_finished",
+      step: "fetching_matches",
+      matchesFetched: 0,
+    };
 
     return allNewMatches;
   }
 
   private static async *progressFetchLeagues(
-    id: Pick<SummonerType, "region" | "puuid">,
+    id: Pick<SummonerType, "region" | "puuid">
   ): AsyncGenerator<RefreshProgressMsgType, LeagueRowType[], void> {
     yield { status: "step_started", step: "fetching_leagues" };
 
     yield { status: "step_in_progress", step: "fetching_leagues" };
 
-    const leagues = await db.transaction((tx) => LeagueService.cacheLeaguesTx(tx, id));
+    const leagues = await db.transaction((tx) =>
+      LeagueService.cacheLeaguesTx(tx, id)
+    );
 
     yield { status: "step_finished", step: "fetching_leagues" };
 
@@ -274,7 +319,7 @@ export class RefreshService {
     id: Pick<SummonerType, "region" | "puuid">,
     queue: LolQueueType,
     leagues: LeagueRowType[],
-    matches?: MatchWithSummonersType[],
+    matches?: MatchWithSummonersType[]
   ): AsyncGenerator<
     RefreshProgressMsgType,
     { lastMatch: MatchWithSummonersType | undefined },
@@ -290,7 +335,7 @@ export class RefreshService {
         queue,
         true,
         leagues,
-        matches,
+        matches
       );
     });
 
@@ -301,7 +346,10 @@ export class RefreshService {
     };
   }
 
-  static async batchFastRefresh(summoners: SummonerType[], queueType: LolQueueType) {
+  static async batchFastRefresh(
+    summoners: SummonerType[],
+    queueType: LolQueueType
+  ) {
     return db.transaction(async (tx) => {
       const queueId = LOL_QUEUES[queueType].queueId;
 
@@ -313,38 +361,44 @@ export class RefreshService {
               queue: queueId,
               count: 10,
               start: 0,
-            },
+            }
           );
 
           return {
             puuid: s.puuid,
             matchIds: ids,
           };
-        }),
+        })
       );
 
       const matches = await MatchService.getAndSaveMatcheIdsTx(
         tx,
-        matchIdsData.flatMap((m) => m.matchIds.ids),
+        matchIdsData.flatMap((m) => m.matchIds.ids)
       );
 
       const dataBySummoner = summoners.map((s) => {
-        const matchIds = matchIdsData.find((m) => m.puuid === s.puuid)!.matchIds.ids;
-        const summonerMatches = matches.filter((m) => matchIds.includes(m.matchId));
+        const matchIds = matchIdsData.find((m) => m.puuid === s.puuid)!.matchIds
+          .ids;
+        const summonerMatches = matches.filter((m) =>
+          matchIds.includes(m.matchId)
+        );
 
         return {
           summoner: s,
           matches: summonerMatches,
-          lastMatch: summonerMatches.sort((a, b) => b.gameCreationMs - a.gameCreationMs).at(0),
+          lastMatch: summonerMatches
+            .sort((a, b) => b.gameCreationMs - a.gameCreationMs)
+            .at(0),
         };
       });
 
-      const { statistics } = await StatisticService.batchRefreshSummonerStatitisticsTx(
-        tx,
-        dataBySummoner,
-        queueType,
-        false,
-      );
+      const { statistics } =
+        await StatisticService.batchRefreshSummonerStatitisticsTx(
+          tx,
+          dataBySummoner,
+          queueType,
+          false
+        );
 
       await this.batchUpdateLastRefreshTx(tx, dataBySummoner, queueType, false);
 

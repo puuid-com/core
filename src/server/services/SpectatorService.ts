@@ -1,11 +1,11 @@
 import {
   SpectatorActiveGameRoute,
   SpectatorFeaturedGamesRoute,
-} from "@/server/api-route/riot/spectator/SpectatorRoutes";
+} from "@/server/api-route/riot/SpectatorRoutes";
 import type { SummonerType } from "@/server/db/schema/summoner";
 import { RefreshService } from "@/server/services/RefreshService";
-import { SummonerService } from "@/server/services/summoner/SummonerService";
-import type { LolRegionType } from "@/server/types/riot/common";
+import { SummonerService } from "@/server/services/SummonerService";
+import type { LolRegionType } from "@/shared/types/riot/common";
 
 export class SpectatorService {
   static async getFeaturedGames(region: LolRegionType) {
@@ -22,7 +22,7 @@ export class SpectatorService {
       },
       {
         throwHttpErrors: false,
-      },
+      }
     );
 
     if ("httpStatus" in data) {
@@ -32,7 +32,9 @@ export class SpectatorService {
     }
   }
 
-  static async getActiveGameData(summoner: Pick<SummonerType, "puuid" | "region">) {
+  static async getActiveGameData(
+    summoner: Pick<SummonerType, "puuid" | "region">
+  ) {
     const data = await this.getActiveGame(summoner);
 
     if (!data) {
@@ -40,10 +42,13 @@ export class SpectatorService {
     }
 
     const summoners = await SummonerService.getOrCreateSummonersByPuuids(
-      data.participants.map((p) => p.puuid),
+      data.participants.map((p) => p.puuid)
     );
 
-    const refreshedStats = await RefreshService.batchFastRefresh(summoners, "RANKED_SOLO_5x5");
+    const refreshedStats = await RefreshService.batchFastRefresh(
+      summoners,
+      "RANKED_SOLO_5x5"
+    );
 
     return {
       ...data,

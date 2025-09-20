@@ -1,5 +1,5 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
-import type { LolPositionType } from "@/server/api-route/riot/match/MatchDTO";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
+import type { LolPositionType } from "@/shared/types/dto/MatchDTO";
 import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
 import { summonerTable } from "@/server/db/schema/summoner";
 import { relations } from "drizzle-orm";
@@ -38,9 +38,12 @@ export const statisticTable = pgTable(
       .notNull(),
     queueType: text("queue_type").$type<LolQueueType>().notNull(),
 
-    latestLeagueEntryId: uuid("latest_league_entry_id").references(() => leagueTable.id, {
-      onDelete: "set null",
-    }),
+    latestLeagueEntryId: uuid("latest_league_entry_id").references(
+      () => leagueTable.id,
+      {
+        onDelete: "set null",
+      }
+    ),
     mainPosition: text("main_position").$type<LolPositionType | null>(),
 
     mainChampionId: integer("main_champion_id").notNull(),
@@ -57,21 +60,31 @@ export const statisticTable = pgTable(
     averageDeathPerGame: doublePrecision("average_death_per_game").notNull(),
     averageAssistPerGame: doublePrecision("average_assist_per_game").notNull(),
 
-    statsByTeammates: jsonb("stats_by_teammates").$type<StatsByTeammate>().notNull(),
+    statsByTeammates: jsonb("stats_by_teammates")
+      .$type<StatsByTeammate>()
+      .notNull(),
 
     // stats
-    statsByChampionId: jsonb("stats_by_champion_id").$type<StatsByChampionId>().notNull(),
-    statsByPosition: jsonb("stats_by_position").$type<StatsByIndividualPosition>().notNull(),
-    statsByOppositePositionChampionId: jsonb("stats_by_opposite_position_champion_id")
+    statsByChampionId: jsonb("stats_by_champion_id")
+      .$type<StatsByChampionId>()
+      .notNull(),
+    statsByPosition: jsonb("stats_by_position")
+      .$type<StatsByIndividualPosition>()
+      .notNull(),
+    statsByOppositePositionChampionId: jsonb(
+      "stats_by_opposite_position_champion_id"
+    )
       .$type<StatsByChampionId>()
       .notNull(),
 
     wins: integer("wins").notNull(),
     losses: integer("losses").notNull(),
 
-    refreshedAt: timestamp("refreshed_at", { withTimezone: true }).notNull().defaultNow(),
+    refreshedAt: timestamp("refreshed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.puuid, t.queueType] })],
+  (t) => [primaryKey({ columns: [t.puuid, t.queueType] })]
 );
 export const statisticTableRelations = relations(statisticTable, ({ one }) => ({
   summoner: one(summonerTable, {

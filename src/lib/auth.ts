@@ -5,8 +5,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { reactStartCookies } from "better-auth/react-start";
 import { genericOAuth } from "better-auth/plugins";
 import ky from "ky";
-import type { AccountDTOType } from "@/server/api-route/riot/account/AccountDTO";
-import type { SummonerDTOType } from "@/server/api-route/riot/summoner/SummonerDTO";
+import type { AccountDTOType } from "@/shared/types/dto/AccountDTO";
+import type { SummonerDTOType } from "@/shared/types/dto/SummonerDTO";
 import { CDragonService } from "@/shared/services/CDragonService";
 import { UserPageService } from "@/server/services/UserPageService";
 

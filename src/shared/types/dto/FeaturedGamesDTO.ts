@@ -75,25 +75,23 @@ const FeaturedGamesDTOSchema = v.object({
 });
 
 /** Types inferred from schemas */
-type BannedChampionDTOType = v.InferOutput<typeof BannedChampionDTOSchema>;
-type ObserverDTOType = v.InferOutput<typeof ObserverDTOSchema>;
-type ParticipantDTOType = v.InferOutput<typeof ParticipantDTOSchema>;
+type FeaturedGameBannedChampionDTOType = v.InferOutput<
+  typeof BannedChampionDTOSchema
+>;
+type FeaturedGameObserverDTOType = v.InferOutput<typeof ObserverDTOSchema>;
+type FeaturedGameParticipantDTOType = v.InferOutput<
+  typeof ParticipantDTOSchema
+>;
 type FeaturedGameInfoDTOType = v.InferOutput<typeof FeaturedGameInfoDTOSchema>;
 type FeaturedGamesDTOType = v.InferOutput<typeof FeaturedGamesDTOSchema>;
 
 /** Exports */
-export {
-  BannedChampionDTOSchema,
-  ObserverDTOSchema,
-  ParticipantDTOSchema,
-  FeaturedGameInfoDTOSchema,
-  FeaturedGamesDTOSchema,
-};
+export { FeaturedGamesDTOSchema };
 
 export type {
-  BannedChampionDTOType,
-  ObserverDTOType,
-  ParticipantDTOType,
+  FeaturedGameBannedChampionDTOType,
+  FeaturedGameObserverDTOType,
+  FeaturedGameParticipantDTOType,
   FeaturedGameInfoDTOType,
   FeaturedGamesDTOType,
 };

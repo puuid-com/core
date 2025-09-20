@@ -1,6 +1,6 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import { summonerTable } from "@/server/db/schema/summoner";
-import type { LolTierType } from "@/server/types/riot/common";
+import type { LolTierType } from "@/shared/types/riot/common";
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
@@ -35,14 +35,16 @@ export const leagueTable = pgTable(
 
     isLatest: boolean("is_latest").notNull(),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     index("idx_le_puuid").on(t.puuid),
     uniqueIndex("uq_le_puuid_queue_latest")
       .on(t.puuid, t.queueType)
       .where(sql`${t.isLatest} is true`),
-  ],
+  ]
 );
 
 export type LeagueRowType = typeof leagueTable.$inferSelect;

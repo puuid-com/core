@@ -619,9 +619,13 @@ export function isDeprecatedQueue(key: LoLQueueKeyType): boolean {
 }
 
 export function getActiveQueues(): Record<string, LoLQueue> {
-  return Object.fromEntries(Object.entries(LOL_QUEUES).filter(([key]) => !key.startsWith("_")));
+  return Object.fromEntries(
+    Object.entries(LOL_QUEUES).filter(([key]) => !key.startsWith("_"))
+  );
 }
 
 export function getDeprecatedQueues(): Record<string, LoLQueue> {
-  return Object.fromEntries(Object.entries(LOL_QUEUES).filter(([key]) => key.startsWith("_")));
+  return Object.fromEntries(
+    Object.entries(LOL_QUEUES).filter(([key]) => key.startsWith("_"))
+  );
 }

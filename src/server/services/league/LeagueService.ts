@@ -1,5 +1,5 @@
-import type { LolQueueType } from "@/server/api-route/riot/league/LeagueDTO";
-import { LeagueV4ByPuuid } from "@/server/api-route/riot/league/LeagueRoutes";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
+import { LeagueV4ByPuuid } from "@/server/api-route/riot/LeagueRoutes";
 import { db, type TransactionType } from "@/server/db";
 import {
   leagueTable,
@@ -8,16 +8,19 @@ import {
 } from "@/server/db/schema/league";
 import type { SummonerType } from "@/server/db/schema/summoner";
 import type { LeaguesType } from "@/server/services/league/type";
-import type { LolRegionType } from "@/server/types/riot/common";
+import type { LolRegionType } from "@/shared/types/riot/common";
 import { and, eq, desc, inArray, sql, or } from "drizzle-orm";
 
 export class LeagueService {
-  private static async upsertLeaguesTx(tx: TransactionType, leagues: InsertLeagueRowType[]) {
+  private static async upsertLeaguesTx(
+    tx: TransactionType,
+    leagues: InsertLeagueRowType[]
+  ) {
     const conditions = leagues.map((l) => {
       return and(
         eq(leagueTable.puuid, l.puuid),
         eq(leagueTable.queueType, l.queueType),
-        eq(leagueTable.isLatest, true),
+        eq(leagueTable.isLatest, true)
       );
     });
 
@@ -31,11 +34,14 @@ export class LeagueService {
     return tx.insert(leagueTable).values(leagues).returning();
   }
 
-  static async batchCacheLeaguesBySummonersTx(tx: TransactionType, summoners: SummonerType[]) {
+  static async batchCacheLeaguesBySummonersTx(
+    tx: TransactionType,
+    summoners: SummonerType[]
+  ) {
     const leagues = await Promise.all(
       summoners.map((summoner) =>
-        LeagueV4ByPuuid.call({ puuid: summoner.puuid, region: summoner.region }),
-      ),
+        LeagueV4ByPuuid.call({ puuid: summoner.puuid, region: summoner.region })
+      )
     );
 
     const flattened = leagues.flat();
@@ -47,13 +53,13 @@ export class LeagueService {
       flattened.map((l) => ({
         isLatest: true,
         ...l,
-      })),
+      }))
     );
   }
 
   static async cacheLeaguesTx(
     tx: TransactionType,
-    id: Pick<SummonerType, "puuid" | "region">,
+    id: Pick<SummonerType, "puuid" | "region">
   ): Promise<LeagueRowType[]> {
     const data = await LeagueV4ByPuuid.call({
       region: id.region,
@@ -67,13 +73,13 @@ export class LeagueService {
       data.map((l) => ({
         isLatest: true,
         ...l,
-      })),
+      }))
     );
   }
 
   static async getLeaguesTx(
     tx: TransactionType,
-    summoner: Pick<SummonerType, "region" | "puuid">,
+    summoner: Pick<SummonerType, "region" | "puuid">
   ): Promise<LeaguesType> {
     const cachedLeagues = await tx
       .select()
@@ -99,25 +105,27 @@ export class LeagueService {
   static async getLeaguesByPuuids(
     puuids: SummonerType["puuid"][],
     queueType: LolQueueType,
-    region: LolRegionType,
+    region: LolRegionType
   ) {
     const cached = await db.query.leagueTable.findMany({
       where: and(
         inArray(leagueTable.puuid, puuids),
         eq(leagueTable.queueType, queueType),
         eq(leagueTable.isLatest, true),
-        sql`${leagueTable.createdAt} >= NOW() - INTERVAL '12 hours'`,
+        sql`${leagueTable.createdAt} >= NOW() - INTERVAL '12 hours'`
       ),
     });
 
-    const notCached = puuids.filter((puuid) => !cached.some((l) => l.puuid === puuid));
+    const notCached = puuids.filter(
+      (puuid) => !cached.some((l) => l.puuid === puuid)
+    );
 
     if (!notCached.length) return cached;
 
     const newLeagues = await Promise.all(
       notCached.map((puuid) => {
         return LeagueV4ByPuuid.call({ region, puuid });
-      }),
+      })
     );
 
     const newLeagueRows = await db.transaction((tx) =>
@@ -126,8 +134,8 @@ export class LeagueService {
         newLeagues.flat().map((l) => ({
           isLatest: true,
           ...l,
-        })),
-      ),
+        }))
+      )
     );
 
     cached.push(...newLeagueRows.filter((l) => l.queueType === queueType));
