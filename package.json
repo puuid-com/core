@@ -78,7 +78,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "prebuild": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true });\"",
-    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json && node ./scripts/fix-esm.mjs",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "publish:npm": "npm publish --access public",

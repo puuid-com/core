@@ -41,9 +41,11 @@ export class SpectatorService {
       return null;
     }
 
-    const summoners = await SummonerService.getOrCreateSummonersByPuuids(
-      data.participants.map((p) => p.puuid)
-    );
+    const summoners = (
+      await SummonerService.getOrCreateSummonersByPuuids(
+        data.participants.map((p) => p.puuid)
+      )
+    ).map((s) => s.summoner);
 
     const refreshedStats = await RefreshService.batchFastRefresh(
       summoners,

@@ -21,6 +21,7 @@ import {
   ilike,
   inArray,
   not,
+  or,
   sql,
   type SQLWrapper,
 } from "drizzle-orm";
@@ -43,6 +44,7 @@ export type GetMatchesFiltersType = {
   playedChampionIds: number[]; // pc
   matchupChampionIds: number[]; // mc
   teammatePuuids: string[]; // t
+  ennemyPuuids: string[]; // pa
   gameResult: boolean; // w
   global: string; // c
   resultType: MatchResultType;
@@ -305,8 +307,33 @@ export class MatchService {
         inArray(msSelf.championId, filters.playedChampionIds),
     ].filter(Boolean) as SQLWrapper[];
 
-    const teammateExists =
-      has(filters.teammatePuuids) &&
+    const teammateClause = has(filters.teammatePuuids)
+      ? and(
+          eq(matchSummonerTable.teamId, msSelf.teamId),
+          inArray(matchSummonerTable.puuid, filters.teammatePuuids)
+        )
+      : undefined;
+
+    const enemyClause = has(filters.ennemyPuuids)
+      ? and(
+          not(eq(matchSummonerTable.teamId, msSelf.teamId)),
+          inArray(matchSummonerTable.puuid, filters.ennemyPuuids)
+        )
+      : undefined;
+
+    const matchupClause = has(filters.matchupChampionIds)
+      ? and(
+          // the specific opponent you faced
+          eq(matchSummonerTable.puuid, msSelf.vsSummonerPuuid),
+          inArray(matchSummonerTable.championId, filters.matchupChampionIds)
+        )
+      : undefined;
+
+    // any of teammate, enemy, or matchup may satisfy the subquery
+    const mergedExists =
+      (has(filters.teammatePuuids) ||
+        has(filters.ennemyPuuids) ||
+        has(filters.matchupChampionIds)) &&
       exists(
         db
           .select({ _: sql<number>`1` })
@@ -315,22 +342,9 @@ export class MatchService {
             and(
               eq(matchSummonerTable.matchId, msSelf.matchId),
               not(eq(matchSummonerTable.puuid, msSelf.puuid)),
-              inArray(matchSummonerTable.puuid, filters.teammatePuuids)
-            )
-          )
-      );
-
-    const matchupExists =
-      has(filters.matchupChampionIds) &&
-      exists(
-        db
-          .select({ _: sql<number>`1` })
-          .from(matchSummonerTable)
-          .where(
-            and(
-              eq(matchSummonerTable.matchId, msSelf.matchId),
-              eq(matchSummonerTable.puuid, msSelf.vsSummonerPuuid),
-              inArray(matchSummonerTable.championId, filters.matchupChampionIds)
+              and(
+                ...[teammateClause, enemyClause, matchupClause].filter(Boolean)
+              )
             )
           )
       );
@@ -342,8 +356,7 @@ export class MatchService {
 
     const allWhere = [
       ...baseSelfConds,
-      teammateExists as SQLWrapper | undefined,
-      matchupExists as SQLWrapper | undefined,
+      mergedExists as SQLWrapper | undefined,
       ...matchConds,
     ].filter(Boolean) as SQLWrapper[];
 

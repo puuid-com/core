@@ -12,7 +12,7 @@ import {
 import { SummonerService } from "@/server/services/SummonerService";
 import { CDragonService } from "@/shared/services/CDragonService";
 import type { User } from "better-auth";
-import { desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 export class UserPageService {
   static async getUserPageSummoners(userId: User["id"]) {
@@ -133,23 +133,49 @@ export class UserPageService {
     return userPage;
   }
 
-  static async searchUserPage(search: string) {
-    const norm = normalizeString(search);
+  static async searchUserPage(
+    options: { search?: string; limit?: number } = {}
+  ) {
+    const { search, limit = 25 } = options;
+
+    const trimmed = search?.trim();
+
+    if (!trimmed) {
+      return [];
+    }
+
+    const norm = normalizeString(trimmed);
+
+    if (!norm) {
+      return [];
+    }
+
     const pattern = `%${norm}%`;
     const prefixPattern = `${norm}%`;
 
-    // Similarity score using Jaro-Winkler, with a tiny prefix boost
-    const sim = sql<number>`jarowinkler(${userPageTable.normalizedName}, ${norm})`;
+    const jwThreshold = norm.length <= 3 ? 0.6 : norm.length <= 4 ? 0.68 : 0.75;
+
+    const fuzzyMatch = sql<boolean>`jarowinkler(${userPageTable.normalizedName}, ${norm}) >= ${jwThreshold}`;
+
+    const whereClause = and(
+      eq(userPageTable.isPublic, true),
+      or(ilike(userPageTable.normalizedName, pattern), fuzzyMatch)
+    );
+
+    const simName = sql<number>`jarowinkler(${userPageTable.normalizedName}, ${norm})`;
+
     const score = sql<number>`
-      ${sim}
-      + (CASE WHEN ${userPageTable.normalizedName} ILIKE ${prefixPattern} THEN 0.001 ELSE 0 END)
+      (CASE WHEN ${fuzzyMatch} THEN 100 ELSE 0 END)
+      + ${simName}
+      + (CASE WHEN ${userPageTable.normalizedName} ILIKE ${prefixPattern} THEN 1 ELSE 0 END)
     `;
 
     return db
       .select()
       .from(userPageTable)
-      .where(ilike(userPageTable.normalizedName, pattern))
-      .orderBy(desc(score), userPageTable.displayName);
+      .where(whereClause)
+      .orderBy(desc(score), userPageTable.displayName)
+      .limit(limit);
   }
 
   static async getUserPage(displayName: string) {

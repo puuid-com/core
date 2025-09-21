@@ -12,15 +12,9 @@ export type {
   InsertMatchCommentRowType,
 } from "./schema/match-comments";
 
-export type {
-  FollowingRowType,
-  FollowingInsertType,
-} from "./schema/following";
+export type { FollowingRowType, FollowingInsertType } from "./schema/following";
 
-export type {
-  LeagueRowType,
-  InsertLeagueRowType,
-} from "./schema/league";
+export type { LeagueRowType, InsertLeagueRowType } from "./schema/league";
 
 export type { NoteRowType, NoteInsertType } from "./schema/note";
 

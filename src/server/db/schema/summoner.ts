@@ -1,7 +1,7 @@
 import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
 import { matchSummonerTable } from "@/server/db/schema/match";
 import { matchCommentTable } from "@/server/db/schema/match-comments";
-import { noteTable } from "@/server/db/schema/note";
+import { noteTable, type NoteRowType } from "@/server/db/schema/note";
 import { summonerRefresh } from "@/server/db/schema/summoner-refresh";
 import {
   statisticTable,
@@ -54,6 +54,9 @@ export const summonerTableRelations = relations(
 export type SummonerType = typeof summonerTable.$inferSelect;
 export type InsertSummonerType = typeof summonerTable.$inferInsert;
 
+export type SummonerWithNote = SummonerType & {
+  note: NoteRowType | undefined;
+};
 export type SummonerWithRelationsType = SummonerType & {
   statistics: StatisticWithLeagueType[];
   leagues: LeagueRowType[];

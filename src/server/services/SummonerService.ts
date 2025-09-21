@@ -12,10 +12,9 @@ import {
   summonerTable,
   type SummonerType,
   type SummonerWithRelationsType,
-  type InsertSummonerType,
 } from "@/server/db/schema/summoner";
 import type { User } from "better-auth";
-import { noteTable } from "@/server/db/schema/note";
+import { noteTable, type NoteRowType } from "@/server/db/schema/note";
 import { matchSummonerTable } from "@/server/db/schema/match";
 
 export const getPartsFromRiotID = (riotID: string) => {
@@ -42,8 +41,6 @@ export class SummonerService {
     `);
 
     const puuids = rows.map((r) => r.puuid as string);
-
-    console.log({ puuids });
 
     const data = await db.query.summonerTable.findMany({
       where: inArray(summonerTable.puuid, puuids),
@@ -240,13 +237,26 @@ export class SummonerService {
     return this.handleSummonerCreationFromAccountTx(tx, account, accountRegion);
   }
 
-  static async getOrCreateSummonersByPuuids(puuids: SummonerType["puuid"][]) {
-    const cached = await db.query.summonerTable.findMany({
-      where: inArray(summonerTable.puuid, puuids),
-    });
+  static async getOrCreateSummonersByPuuids(
+    puuids: SummonerType["puuid"][],
+    userId?: User["id"]
+  ): Promise<{ summoner: SummonerType; note: NoteRowType | null }[]> {
+    const cached = await db
+      .select()
+      .from(summonerTable)
+      .leftJoin(
+        noteTable,
+        userId
+          ? and(
+              eq(noteTable.userId, userId),
+              eq(noteTable.puuid, summonerTable.puuid)
+            )
+          : sql`False`
+      )
+      .where(inArray(summonerTable.puuid, puuids));
 
     const notCached = puuids.filter(
-      (puuid) => !cached.some((s) => s.puuid === puuid)
+      (puuid) => !cached.some((s) => s.summoner.puuid === puuid)
     );
 
     if (notCached.length === 0) {
@@ -298,7 +308,7 @@ export class SummonerService {
       )
     );
 
-    const summoners: InsertSummonerType[] = dataByPuuid.map(
+    const summoners: SummonerType[] = dataByPuuid.map(
       ({ puuid, account, accountRegion }) => {
         const summoner = summonersDTO.find((s) => s.puuid === puuid)!;
 
@@ -306,12 +316,15 @@ export class SummonerService {
       }
     );
 
-    const insertedSummoners = await db
-      .insert(summonerTable)
-      .values(summoners)
-      .returning();
+    await db.insert(summonerTable).values(summoners);
 
-    return [...cached, ...insertedSummoners];
+    return [
+      ...cached,
+      ...summoners.map((s) => ({
+        summoner: s,
+        note: null,
+      })),
+    ];
   }
 
   static async handleSummonerCreationFromAccountTx(
@@ -354,7 +367,7 @@ export class SummonerService {
     account: AccountDTOType,
     summoner: SummonerDTOType,
     accountRegion: AccountRegionDTOType
-  ): InsertSummonerType {
+  ): SummonerType {
     return {
       puuid: account.puuid,
 
