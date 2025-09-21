@@ -16,6 +16,7 @@ import {
 } from "@/server/db/schema/summoner";
 import type { User } from "better-auth";
 import { noteTable } from "@/server/db/schema/note";
+import { matchSummonerTable } from "@/server/db/schema/match";
 
 export const getPartsFromRiotID = (riotID: string) => {
   const [gameName, tagLine] = riotID.split("#");
@@ -33,6 +34,34 @@ export const getPartsFromRiotID = (riotID: string) => {
 };
 
 export class SummonerService {
+  static async getRandomSummoners(options: { count: number }) {
+    const { rows } = await db.execute(sql`
+      SELECT puuid
+      FROM ${summonerTable}
+      TABLESAMPLE SYSTEM_ROWS(${options.count});
+    `);
+
+    const puuids = rows.map((r) => r.puuid as string);
+
+    console.log({ puuids });
+
+    const data = await db.query.summonerTable.findMany({
+      where: inArray(summonerTable.puuid, puuids),
+      with: {
+        statistics: true,
+        matchSummoner: {
+          limit: 1,
+          with: {
+            match: true,
+          },
+          orderBy: [desc(matchSummonerTable.gameCreationMs)],
+        },
+      },
+    });
+
+    return data;
+  }
+
   static async getSummonersWithRelations(search?: string) {
     const norm = search ? normalizeRiotID(search) : "";
     const whereClause = norm
@@ -50,7 +79,7 @@ export class SummonerService {
     });
   }
 
-  static async getSummoners(
+  static async searchSummoners(
     options: { search?: string; limit?: number; userId?: User["id"] } = {}
   ) {
     const { search, limit = 25, userId } = options;

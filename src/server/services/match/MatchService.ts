@@ -55,7 +55,7 @@ export const defaultMatchesFilters: PartialOmit<
   GetMatchesFiltersType,
   "page" | "limit"
 > = {
-  page: 0,
+  page: 1,
   limit: 10,
 };
 
@@ -290,7 +290,7 @@ export class MatchService {
       ..._filters,
     };
 
-    const offset = filters.page * filters.limit;
+    const offset = (filters.page - 1) * filters.limit;
 
     const msSelf = alias(matchSummonerTable, "ms_self");
 

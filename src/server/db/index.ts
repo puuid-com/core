@@ -23,6 +23,7 @@ const pool = new Pool({
   user: serverEnv.DATABASE_USER,
   password: serverEnv.DATABASE_PASSWORD,
   ssl: { ca: ca },
+  application_name: "@puuid/core",
 });
 
 export const db = drizzle({
