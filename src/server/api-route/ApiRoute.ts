@@ -4,18 +4,22 @@ import { type Options } from "ky";
 import * as v from "valibot";
 import { serverEnv } from "@/server/lib/env/server";
 
-type Schema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+export type DefaultSchema = v.BaseSchema<
+  unknown,
+  unknown,
+  v.BaseIssue<unknown>
+>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
 const keys = RiotAPIRateLimiter.getKeys();
 
-export type ApiRouteConfigs<S extends Schema, P> = {
+export type ApiRouteConfigs<S extends DefaultSchema, P> = {
   key: (typeof keys)[number];
   schema: S;
   getUrl: (p: P) => string;
 };
 
-export class RiotApiRoute<S extends Schema, P> {
+export class RiotApiRoute<S extends DefaultSchema, P> {
   readonly configs: ApiRouteConfigs<S, P>;
 
   constructor(cfg: ApiRouteConfigs<S, P>) {

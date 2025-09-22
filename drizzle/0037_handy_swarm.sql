@@ -1,0 +1,1 @@
+ALTER TABLE "league" ALTER COLUMN "region" SET NOT NULL;

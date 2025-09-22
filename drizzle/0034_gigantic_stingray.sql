@@ -1,0 +1,1 @@
+ALTER TABLE "league" ALTER COLUMN "is_latest" SET DEFAULT true;

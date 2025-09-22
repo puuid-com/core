@@ -1,5 +1,13 @@
-import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
-import { LeagueV4ByPuuid } from "@/server/api-route/riot/LeagueRoutes";
+import type {
+  LeagueListDTOType,
+  LolQueueType,
+} from "@/shared/types/dto/LeagueDTO";
+import {
+  LeagueV4ByPuuid,
+  LeagueV4Challengers,
+  LeagueV4Grandmasters,
+  LeagueV4Masters,
+} from "@/server/api-route/riot/LeagueRoutes";
 import { db, type TransactionType } from "@/server/db";
 import {
   leagueTable,
@@ -8,7 +16,10 @@ import {
 } from "@/server/db/schema/league";
 import type { SummonerType } from "@/server/db/schema/summoner";
 import type { LeaguesType } from "@/server/services/league/type";
-import type { LolRegionType } from "@/shared/types/riot/common";
+import type {
+  LolHighTierType,
+  LolRegionType,
+} from "@/shared/types/riot/common";
 import { and, eq, desc, inArray, sql, or } from "drizzle-orm";
 
 export class LeagueService {
@@ -59,22 +70,24 @@ export class LeagueService {
     summoners: SummonerType[]
   ) {
     const leagues = await Promise.all(
-      summoners.map((summoner) =>
-        LeagueV4ByPuuid.call({ puuid: summoner.puuid, region: summoner.region })
-      )
+      summoners.map<Promise<InsertLeagueRowType[]>>(async (summoner) => {
+        const league = await LeagueV4ByPuuid.call({
+          puuid: summoner.puuid,
+          region: summoner.region,
+        });
+
+        return league.map((l) => ({
+          ...l,
+          region: summoner.region,
+        }));
+      })
     );
 
     const flattened = leagues.flat();
 
     if (flattened.length === 0) return [];
 
-    return this.upsertLeaguesTx(
-      tx,
-      flattened.map((l) => ({
-        isLatest: true,
-        ...l,
-      }))
-    );
+    return this.upsertLeaguesTx(tx, flattened);
   }
 
   static async cacheLeaguesTx(
@@ -90,9 +103,9 @@ export class LeagueService {
 
     return this.upsertLeaguesTx(
       tx,
-      data.map((l) => ({
-        isLatest: true,
-        ...l,
+      data.map((d) => ({
+        ...d,
+        region: id.region,
       }))
     );
   }
@@ -122,44 +135,42 @@ export class LeagueService {
     }, {} as LeaguesType);
   }
 
-  static async getLeaguesByPuuids(
-    puuids: SummonerType["puuid"][],
-    queueType: LolQueueType,
-    region: LolRegionType
+  static async getLeagues(
+    tier: LolHighTierType,
+    region: LolRegionType,
+    queue: LolQueueType
   ) {
-    const cached = await db.query.leagueTable.findMany({
-      where: and(
-        inArray(leagueTable.puuid, puuids),
-        eq(leagueTable.queueType, queueType),
-        eq(leagueTable.isLatest, true),
-        sql`${leagueTable.createdAt} >= NOW() - INTERVAL '12 hours'`
-      ),
-    });
+    let leagues: LeagueListDTOType;
 
-    const notCached = puuids.filter(
-      (puuid) => !cached.some((l) => l.puuid === puuid)
-    );
+    switch (tier) {
+      case "MASTER":
+        leagues = await LeagueV4Masters.call({ queue, region });
+        break;
+      case "GRANDMASTER":
+        leagues = await LeagueV4Grandmasters.call({ queue, region });
+        break;
+      case "CHALLENGER":
+        leagues = await LeagueV4Challengers.call({ queue, region });
+        break;
+    }
 
-    if (!notCached.length) return cached;
+    const data = leagues.entries.map<InsertLeagueRowType>((e) => ({
+      ...e,
+      queueType: queue,
+      tier: tier,
+      region: region,
+    }));
 
-    const newLeagues = await Promise.all(
-      notCached.map((puuid) => {
-        return LeagueV4ByPuuid.call({ region, puuid });
-      })
-    );
+    const batchSize = 50;
 
-    const newLeagueRows = await db.transaction((tx) =>
-      this.upsertLeaguesTx(
-        tx,
-        newLeagues.flat().map((l) => ({
-          isLatest: true,
-          ...l,
-        }))
-      )
-    );
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = data.slice(i, i + batchSize);
 
-    cached.push(...newLeagueRows.filter((l) => l.queueType === queueType));
+      await db.transaction(async (tx) => {
+        await this.upsertLeaguesTx(tx, batch);
+      });
+    }
 
-    return cached;
+    return data;
   }
 }

@@ -1,6 +1,6 @@
 import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import { summonerTable } from "@/server/db/schema/summoner";
-import type { LolTierType } from "@/shared/types/riot/common";
+import type { LolRegionType, LolTierType } from "@/shared/types/riot/common";
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
@@ -21,18 +21,20 @@ export const leagueTable = pgTable(
     id: uuid("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    leagueId: text("league_id").notNull(),
+    leagueId: text("league_id"),
     puuid: text("puuid").notNull(),
 
     queueType: text("queue_type").$type<LolQueueType>().notNull(),
     tier: text("tier").$type<LolTierType>().notNull(),
-    rank: text("rank"),
+    rank: text("rank").notNull(),
+
+    region: text("region").$type<LolRegionType>().notNull(),
 
     leaguePoints: integer("league_points").notNull(),
     wins: integer("wins").notNull(),
     losses: integer("losses").notNull(),
 
-    isLatest: boolean("is_latest").notNull(),
+    isLatest: boolean("is_latest").notNull().default(true),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

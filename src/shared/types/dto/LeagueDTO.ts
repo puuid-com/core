@@ -8,7 +8,7 @@ export const LeagueDTOSchema = v.object({
   leagueId: v.string(),
   queueType: v.picklist(LolQueues),
   tier: v.picklist(LolTiers),
-  rank: v.optional(v.string()),
+  rank: v.string(),
   puuid: v.string(),
   leaguePoints: v.number(),
   wins: v.number(),
@@ -22,8 +22,10 @@ export type LeagueDTOType = v.InferInput<typeof LeagueDTOSchema>;
 
 export const LeagueListDTOSchema = v.object({
   leagueId: v.string(),
-  entries: v.array(LeagueDTOSchema),
+  entries: v.array(v.omit(LeagueDTOSchema, ["leagueId", "queueType", "tier"])),
   tier: v.picklist(LolTiers),
   name: v.string(),
   queue: v.picklist(LolQueues),
 });
+
+export type LeagueListDTOType = v.InferOutput<typeof LeagueListDTOSchema>;

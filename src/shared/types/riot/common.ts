@@ -1,20 +1,19 @@
 import { string, regex, pipe, trim, type InferOutput } from "valibot";
 
 export const LolRegions = [
-  "na1",
   "br1",
+  "eun1",
+  "euw1",
+  "jp1",
+  "kr",
   "la1",
   "la2",
-  "euw1",
-  "eun1",
-  "tr1",
-  "ru",
-  "kr",
-  "jp1",
+  "me1",
+  "na1",
   "oc1",
-  "ph2",
+  "ru",
   "sg2",
-  "th2",
+  "tr1",
   "tw2",
   "vn2",
 ] as const;
@@ -43,11 +42,10 @@ export function routingValueFromRegion(
     kr: "asia",
     jp1: "asia",
     oc1: "sea",
-    ph2: "sea",
     sg2: "sea",
-    th2: "sea",
     tw2: "sea",
     vn2: "sea",
+    me1: "americas",
   };
 
   return platformToRegionMap[region];
@@ -66,6 +64,9 @@ export const LolTiers = [
   "CHALLENGER",
 ] as const;
 export type LolTierType = (typeof LolTiers)[number];
+
+export const LolHighTiers = ["MASTER", "GRANDMASTER", "CHALLENGER"] as const;
+export type LolHighTierType = (typeof LolHighTiers)[number];
 
 export const LolRanks = ["IV", "III", "II", "I"] as const;
 export type LolRankType = (typeof LolRanks)[number];
