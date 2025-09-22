@@ -61,19 +61,26 @@ export class SummonerService {
 
       const summoners = await Promise.all(
         batchPuuids.map(async (puuid) => {
-          const [account, summonerDTO] = await Promise.all([
-            AccountService.getAccountByPuuid({ puuid }),
-            SummonerDTOService.getSummonerDTOByPuuid({
-              puuid: puuid,
-              region: region,
-            }),
-          ]);
+          try {
+            const [account, summonerDTO] = await Promise.all([
+              AccountService.getAccountByPuuid({ puuid }),
+              SummonerDTOService.getSummonerDTOByPuuid({
+                puuid: puuid,
+                region: region,
+              }),
+            ]);
 
-          return this.summonerDataToDB(account, summonerDTO, { region });
+            return this.summonerDataToDB(account, summonerDTO, { region });
+          } catch (error) {
+            console.error("Error fetching summoner data:", error);
+            return null;
+          }
         })
       );
 
-      await db.insert(summonerTable).values(summoners);
+      await db
+        .insert(summonerTable)
+        .values(summoners.filter(Boolean) as SummonerType[]);
     }
   }
 
