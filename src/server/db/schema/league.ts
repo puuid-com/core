@@ -4,6 +4,7 @@ import type { LolTierType } from "@/shared/types/riot/common";
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   index,
   integer,
   pgTable,
@@ -21,9 +22,7 @@ export const leagueTable = pgTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     leagueId: text("league_id").notNull(),
-    puuid: text("puuid")
-      .references(() => summonerTable.puuid, { onDelete: "cascade" })
-      .notNull(),
+    puuid: text("puuid").notNull(),
 
     queueType: text("queue_type").$type<LolQueueType>().notNull(),
     tier: text("tier").$type<LolTierType>().notNull(),
@@ -38,12 +37,16 @@ export const leagueTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    createdDay: date("created_day")
+      .notNull()
+      .default(sql`(now() at time zone 'UTC')::date`),
   },
   (t) => [
     index("idx_le_puuid").on(t.puuid),
     uniqueIndex("uq_le_puuid_queue_latest")
       .on(t.puuid, t.queueType)
       .where(sql`${t.isLatest} is true`),
+    uniqueIndex("uq_le_puuid_queue_day").on(t.puuid, t.queueType, t.createdDay),
   ]
 );
 

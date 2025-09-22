@@ -19,3 +19,11 @@ export const LeagueDTOSchema = v.object({
   hotStreak: v.boolean(),
 });
 export type LeagueDTOType = v.InferInput<typeof LeagueDTOSchema>;
+
+export const LeagueListDTOSchema = v.object({
+  leagueId: v.string(),
+  entries: v.array(LeagueDTOSchema),
+  tier: v.picklist(LolTiers),
+  name: v.string(),
+  queue: v.picklist(LolQueues),
+});

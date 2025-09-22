@@ -31,7 +31,27 @@ export class LeagueService {
       })
       .where(or(...conditions));
 
-    return tx.insert(leagueTable).values(leagues).returning();
+    return tx
+      .insert(leagueTable)
+      .values(leagues)
+      .onConflictDoUpdate({
+        target: [
+          leagueTable.puuid,
+          leagueTable.queueType,
+          leagueTable.createdDay,
+        ],
+        set: {
+          isLatest: sql.raw(`excluded.${leagueTable.isLatest.name}`),
+          leagueId: sql.raw(`excluded.${leagueTable.leagueId.name}`),
+          leaguePoints: sql.raw(`excluded.${leagueTable.leaguePoints.name}`),
+          rank: sql.raw(`excluded.${leagueTable.rank.name}`),
+          tier: sql.raw(`excluded.${leagueTable.tier.name}`),
+          wins: sql.raw(`excluded.${leagueTable.wins.name}`),
+          losses: sql.raw(`excluded.${leagueTable.losses.name}`),
+          createdAt: sql.raw(`excluded.${leagueTable.createdAt.name}`),
+        },
+      })
+      .returning();
   }
 
   static async batchCacheLeaguesBySummonersTx(

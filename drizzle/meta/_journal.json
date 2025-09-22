@@ -225,6 +225,20 @@
       "when": 1758149645405,
       "tag": "0031_old_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1758564736470,
+      "tag": "0032_abnormal_havok",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1758564812557,
+      "tag": "0033_polite_madame_hydra",
+      "breakpoints": true
     }
   ]
 }
