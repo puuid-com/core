@@ -16,6 +16,8 @@ import {
 import type { User } from "better-auth";
 import { noteTable, type NoteRowType } from "@/server/db/schema/note";
 import { matchSummonerTable } from "@/server/db/schema/match";
+import type { LolRegionType } from "@/shared";
+import { P } from "node_modules/better-auth/dist/shared/better-auth.BBLxGH6k";
 
 export const getPartsFromRiotID = (riotID: string) => {
   const [gameName, tagLine] = riotID.split("#");
@@ -33,6 +35,48 @@ export const getPartsFromRiotID = (riotID: string) => {
 };
 
 export class SummonerService {
+  static async batchSafeCreate(
+    region: LolRegionType,
+    puuids: SummonerType["puuid"][]
+  ) {
+    if (!puuids.length) return [];
+
+    const cachedPuuids = (
+      await db
+        .select({
+          puuid: summonerTable.puuid,
+        })
+        .from(summonerTable)
+        .where(inArray(summonerTable.puuid, puuids))
+    ).map((r) => r.puuid);
+
+    const notCachedPuuids = puuids.filter((p) => !cachedPuuids.includes(p));
+
+    if (!notCachedPuuids.length) return [];
+
+    const batchSize = 50;
+
+    for (let i = 0; i < notCachedPuuids.length; i += batchSize) {
+      const batchPuuids = notCachedPuuids.slice(i, i + batchSize);
+
+      const summoners = await Promise.all(
+        batchPuuids.map(async (puuid) => {
+          const [account, summonerDTO] = await Promise.all([
+            AccountService.getAccountByPuuid({ puuid }),
+            SummonerDTOService.getSummonerDTOByPuuid({
+              puuid: puuid,
+              region: region,
+            }),
+          ]);
+
+          return this.summonerDataToDB(account, summonerDTO, { region });
+        })
+      );
+
+      await db.insert(summonerTable).values(summoners);
+    }
+  }
+
   static async getRandomSummoners(options: { count: number }) {
     const { rows } = await db.execute(sql`
       SELECT puuid
@@ -214,6 +258,16 @@ export class SummonerService {
     return this.handleSummonerCreationFromAccountTx(tx, account, accountRegion);
   }
 
+  static async createSummonerByPuuidTx(
+    tx: TransactionType,
+    puuid: SummonerType["puuid"]
+  ) {
+    const account = await AccountService.getAccountByPuuid({ puuid });
+    const accountRegion = await AccountService.getAccountRegion(account.puuid);
+
+    return this.handleSummonerCreationFromAccountTx(tx, account, accountRegion);
+  }
+
   static async getOrCreateSummonerByPuuidTx(
     tx: TransactionType,
     puuid: SummonerType["puuid"],
@@ -230,11 +284,7 @@ export class SummonerService {
     if (cachedData && !refresh) {
       return cachedData;
     }
-
-    const account = await AccountService.getAccountByPuuid({ puuid });
-    const accountRegion = await AccountService.getAccountRegion(account.puuid);
-
-    return this.handleSummonerCreationFromAccountTx(tx, account, accountRegion);
+    return this.createSummonerByPuuidTx(tx, puuid);
   }
 
   static async getOrCreateSummonersByPuuids(
@@ -366,7 +416,7 @@ export class SummonerService {
   private static summonerDataToDB(
     account: AccountDTOType,
     summoner: SummonerDTOType,
-    accountRegion: AccountRegionDTOType
+    accountRegion: Pick<AccountRegionDTOType, "region">
   ): SummonerType {
     return {
       puuid: account.puuid,
