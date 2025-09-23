@@ -72,6 +72,9 @@ export class MultiRouteLimiter<RouteName extends string> {
       const catched = Object.values<RateLimiterRes>(rej);
       const msBeforeNext = Math.max(...catched.map((r) => r.msBeforeNext));
 
+      console.log(
+        `Rate limit exceeded for route ${route}. Waiting ${msBeforeNext}ms before retrying...`
+      );
       await new Promise((r) => setTimeout(r, msBeforeNext));
       await this.getUnion(route).consume("all", points);
     }
