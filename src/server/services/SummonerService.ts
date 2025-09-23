@@ -38,8 +38,8 @@ export class SummonerService {
   static async batchSafeCreate(
     region: LolRegionType,
     puuids: SummonerType["puuid"][]
-  ) {
-    if (!puuids.length) return [];
+  ): Promise<number> {
+    if (!puuids.length) return 0;
 
     const cachedPuuids = (
       await db
@@ -52,7 +52,7 @@ export class SummonerService {
 
     const notCachedPuuids = puuids.filter((p) => !cachedPuuids.includes(p));
 
-    if (!notCachedPuuids.length) return [];
+    if (!notCachedPuuids.length) return 0;
 
     const batchSize = 50;
     let createdCount = 0;
