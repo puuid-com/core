@@ -17,7 +17,7 @@ import {
 import type { SummonerType } from "@/server/db/schema/summoner";
 import type { LeaguesType } from "@/server/services/league/type";
 import type {
-  LolHighTierType,
+  LolApexTierType,
   LolRegionType,
 } from "@/shared/types/riot/common";
 import { and, eq, desc, inArray, sql, or } from "drizzle-orm";
@@ -136,7 +136,7 @@ export class LeagueService {
   }
 
   static async getLeagues(
-    tier: LolHighTierType,
+    tier: LolApexTierType,
     region: LolRegionType,
     queue: LolQueueType
   ) {
@@ -161,7 +161,7 @@ export class LeagueService {
       region: region,
     }));
 
-    const batchSize = 50;
+    const batchSize = 100;
 
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);

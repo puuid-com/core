@@ -17,11 +17,27 @@ export const LolRegions = [
   "tw2",
   "vn2",
 ] as const;
-
 export type LolRegionType = (typeof LolRegions)[number];
 
-export const LolRoutingValues = ["americas", "europe", "asia", "sea"] as const;
+export const LolRegionTimezones: Record<LolRegionType, string> = {
+  br1: "America/Sao_Paulo",
+  eun1: "Europe/Warsaw",
+  euw1: "Europe/Paris",
+  jp1: "Asia/Tokyo",
+  kr: "Asia/Seoul",
+  la1: "America/Mexico_City",
+  la2: "America/Santiago",
+  me1: "Asia/Dubai",
+  na1: "America/Los_Angeles",
+  oc1: "Australia/Sydney",
+  ru: "Europe/Moscow",
+  sg2: "Asia/Singapore",
+  tr1: "Europe/Istanbul",
+  tw2: "Asia/Taipei",
+  vn2: "Asia/Ho_Chi_Minh",
+};
 
+export const LolRoutingValues = ["americas", "europe", "asia", "sea"] as const;
 export type LolRoutingValueType = (typeof LolRoutingValues)[number];
 
 export const RiotIdSchema = pipe(string(), trim(), regex(/.*#.*/));
@@ -65,8 +81,8 @@ export const LolTiers = [
 ] as const;
 export type LolTierType = (typeof LolTiers)[number];
 
-export const LolHighTiers = ["MASTER", "GRANDMASTER", "CHALLENGER"] as const;
-export type LolHighTierType = (typeof LolHighTiers)[number];
+export const LolApecTiers = ["MASTER", "GRANDMASTER", "CHALLENGER"] as const;
+export type LolApexTierType = (typeof LolApecTiers)[number];
 
 export const LolRanks = ["IV", "III", "II", "I"] as const;
 export type LolRankType = (typeof LolRanks)[number];

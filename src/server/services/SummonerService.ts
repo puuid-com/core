@@ -72,11 +72,13 @@ export class SummonerService {
 
             return this.summonerDataToDB(account, summonerDTO, { region });
           } catch (error) {
-            console.error("Error fetching summoner data:", error);
+            console.error("Error fetching summoner data:", { puuid });
             return null;
           }
         })
       );
+
+      if (!summoners.filter(Boolean).length) continue;
 
       await db
         .insert(summonerTable)
