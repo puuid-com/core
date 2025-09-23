@@ -54,39 +54,46 @@ export class SummonerService {
 
     if (!notCachedPuuids.length) return 0;
 
-    const batchSize = 50;
     let createdCount = 0;
+    let summoners: SummonerType[] = [];
 
-    for (let i = 0; i < notCachedPuuids.length; i += batchSize) {
-      const batchPuuids = notCachedPuuids.slice(i, i + batchSize);
+    const flushSummoners = async () => {
+      if (!summoners.length) return;
 
-      const summoners = await Promise.all(
-        batchPuuids.map(async (puuid) => {
-          try {
-            const [account, summonerDTO] = await Promise.all([
-              AccountService.getAccountByPuuid({ puuid }),
-              SummonerDTOService.getSummonerDTOByPuuid({
-                puuid: puuid,
-                region: region,
-              }),
-            ]);
+      console.log(`Inserting batch of ${summoners.length} summoners...`);
 
-            return this.summonerDataToDB(account, summonerDTO, { region });
-          } catch (error) {
-            console.error("Error fetching summoner data:", { puuid });
-            return null;
-          }
-        })
-      );
+      try {
+        await db.insert(summonerTable).values(summoners);
+        createdCount += summoners.length;
+        summoners = [];
+      } catch (error) {
+        console.error("Error inserting summoner batch:", {
+          puuids: summoners.map((s) => s.puuid),
+          error,
+        });
+      }
+    };
 
-      const toSaveSummoners = summoners.filter(Boolean) as SummonerType[];
+    for (const puuid of notCachedPuuids) {
+      try {
+        const account = await AccountService.getAccountByPuuid({ puuid });
+        const summonerDTO = await SummonerDTOService.getSummonerDTOByPuuid({
+          puuid: puuid,
+          region: region,
+        });
 
-      if (!toSaveSummoners.length) continue;
+        summoners.push(this.summonerDataToDB(account, summonerDTO, { region }));
+      } catch (error) {
+        console.error("Error fetching summoner data:", { puuid, error });
+        continue;
+      }
 
-      await db.insert(summonerTable).values(toSaveSummoners);
-
-      createdCount += toSaveSummoners.length;
+      if (summoners.length >= 100) {
+        await flushSummoners();
+      }
     }
+
+    await flushSummoners();
 
     return createdCount;
   }
