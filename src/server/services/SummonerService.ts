@@ -55,6 +55,7 @@ export class SummonerService {
     if (!notCachedPuuids.length) return [];
 
     const batchSize = 50;
+    let createdCount = 0;
 
     for (let i = 0; i < notCachedPuuids.length; i += batchSize) {
       const batchPuuids = notCachedPuuids.slice(i, i + batchSize);
@@ -78,12 +79,16 @@ export class SummonerService {
         })
       );
 
-      if (!summoners.filter(Boolean).length) continue;
+      const toSaveSummoners = summoners.filter(Boolean) as SummonerType[];
 
-      await db
-        .insert(summonerTable)
-        .values(summoners.filter(Boolean) as SummonerType[]);
+      if (!toSaveSummoners.length) continue;
+
+      await db.insert(summonerTable).values(toSaveSummoners);
+
+      createdCount += toSaveSummoners.length;
     }
+
+    return createdCount;
   }
 
   static async getRandomSummoners(options: { count: number }) {
