@@ -267,6 +267,34 @@
       "when": 1758568481030,
       "tag": "0037_handy_swarm",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1758804193390,
+      "tag": "0038_tan_loa",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1758804737648,
+      "tag": "0039_hard_harry_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1758804797582,
+      "tag": "0040_smart_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1758805630479,
+      "tag": "0041_spooky_skreet",
+      "breakpoints": true
     }
   ]
 }

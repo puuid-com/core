@@ -1,3 +1,4 @@
+import { leaderboardEntryTable } from "@/server/db/schema/leaderboard";
 import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
 import { matchSummonerTable } from "@/server/db/schema/match";
 import { matchCommentTable } from "@/server/db/schema/match-comments";

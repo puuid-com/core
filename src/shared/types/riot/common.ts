@@ -81,8 +81,8 @@ export const LolTiers = [
 ] as const;
 export type LolTierType = (typeof LolTiers)[number];
 
-export const LolApecTiers = ["MASTER", "GRANDMASTER", "CHALLENGER"] as const;
-export type LolApexTierType = (typeof LolApecTiers)[number];
+export const LolApexTiers = ["MASTER", "GRANDMASTER", "CHALLENGER"] as const;
+export type LolApexTierType = (typeof LolApexTiers)[number];
 
 export const LolRanks = ["IV", "III", "II", "I"] as const;
 export type LolRankType = (typeof LolRanks)[number];

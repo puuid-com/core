@@ -17,3 +17,4 @@ export * from "./league";
 export * from "./match";
 export * from "./rate-limiter";
 export * from "./SummonerService";
+export * from "./LeaderboardService";

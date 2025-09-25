@@ -1,0 +1,1 @@
+ALTER TABLE "leaderboard_entry" ALTER COLUMN "league_id" SET DATA TYPE uuid;

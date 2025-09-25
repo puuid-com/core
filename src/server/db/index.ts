@@ -13,6 +13,7 @@ import * as commentSchema from "@/server/db/schema/match-comments";
 import * as viewsSchema from "@/server/db/schema/views";
 import * as userPageSchema from "@/server/db/schema/user-page";
 import * as userPageStatisticSchema from "@/server/db/schema/user-page-statistic";
+import * as leaderboardSchema from "@/server/db/schema/leaderboard";
 
 const ca = Buffer.from(serverEnv.DATABASE_CRT, "base64").toString("utf8");
 
@@ -41,6 +42,7 @@ export const db = drizzle({
     ...commentSchema,
     ...userPageSchema,
     ...userPageStatisticSchema,
+    ...leaderboardSchema,
   },
   logger: serverEnv.PUUID_CORE_DEBUG
     ? {

@@ -56,3 +56,36 @@ export const LeagueToLP = (league: LeagueRowType) => {
 
   return base + leaguePoints;
 };
+
+export const sortLeagueByLp = (
+  leagues: LeagueRowType[],
+  direction: "asc" | "desc" = "desc"
+) => {
+  const sign = direction === "asc" ? 1 : -1;
+
+  const keyed = leagues.map<{
+    item: LeagueRowType;
+    lp: number;
+    winrate: number;
+    i: number;
+  }>((item, i) => {
+    const games = item.wins + item.losses;
+    const winrate = games > 0 ? item.wins / games : 0;
+    return { item, lp: LeagueToLP(item), winrate, i };
+  });
+
+  keyed.sort((a, b) => {
+    let d = sign * (a.lp - b.lp);
+    if (d !== 0) return d;
+
+    d = b.winrate - a.winrate;
+    if (d !== 0) return d;
+
+    if (a.item.puuid < b.item.puuid) return -1;
+    if (a.item.puuid > b.item.puuid) return 1;
+
+    return a.i - b.i;
+  });
+
+  return keyed.map((k) => k.item);
+};

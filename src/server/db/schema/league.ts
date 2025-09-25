@@ -14,6 +14,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
+import {
+  leaderboardEntryTable,
+  leaderboardTable,
+} from "@/server/db/schema/leaderboard";
 
 export const leagueTable = pgTable(
   "league",
@@ -39,7 +43,7 @@ export const leagueTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    createdDay: date("created_day")
+    createdDay: date("created_day", { mode: "date" })
       .notNull()
       .default(sql`(now() at time zone 'UTC')::date`),
   },
@@ -59,5 +63,9 @@ export const leagueEntryTableRelations = relations(leagueTable, ({ one }) => ({
   summoner: one(summonerTable, {
     fields: [leagueTable.puuid],
     references: [summonerTable.puuid],
+  }),
+  leaderboardEntry: one(leaderboardEntryTable, {
+    fields: [leagueTable.id],
+    references: [leaderboardEntryTable.leagueId],
   }),
 }));

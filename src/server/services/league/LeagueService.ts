@@ -21,6 +21,7 @@ import type {
   LolRegionType,
 } from "@/shared/types/riot/common";
 import { and, eq, desc, inArray, sql, or } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 export class LeagueService {
   private static async upsertLeaguesTx(
@@ -160,17 +161,20 @@ export class LeagueService {
       tier: tier,
       region: region,
     }));
+    const inserted: LeagueRowType[] = [];
 
     const batchSize = 100;
 
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
 
-      await db.transaction(async (tx) => {
-        await this.upsertLeaguesTx(tx, batch);
-      });
+      const newLeagues = await db.transaction((tx) =>
+        this.upsertLeaguesTx(tx, batch)
+      );
+
+      inserted.push(...newLeagues);
     }
 
-    return data;
+    return inserted;
   }
 }
