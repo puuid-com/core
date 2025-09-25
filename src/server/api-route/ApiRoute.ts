@@ -1,6 +1,9 @@
-import { RiotAPIRateLimiter } from "@/server/api-route/riot/RiotRateLimiter";
+import {
+  riotRateLimiter,
+  type RiotApiRouteKey,
+} from "@/server/api-route/riot/RiotRateLimiter";
 import { lolClient } from "@/private/lolClient";
-import { type Options } from "ky";
+import { HTTPError, type Options } from "ky";
 import * as v from "valibot";
 import { serverEnv } from "@/server/lib/env/server";
 
@@ -10,11 +13,8 @@ export type DefaultSchema = v.BaseSchema<
   v.BaseIssue<unknown>
 >;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
-const keys = RiotAPIRateLimiter.getKeys();
-
 export type ApiRouteConfigs<S extends DefaultSchema, P> = {
-  key: (typeof keys)[number];
+  key: RiotApiRouteKey;
   schema: S;
   getUrl: (p: P) => string;
 };
@@ -26,12 +26,8 @@ export class RiotApiRoute<S extends DefaultSchema, P> {
     this.configs = cfg;
   }
 
-  protected async ensureRateLimit() {
-    await RiotAPIRateLimiter.acquireOrWait(this.configs.key);
-  }
-
-  protected async fetchData(param: P, options?: Options) {
-    options = {
+  protected async fetchResponse(param: P, options?: Options) {
+    const requestOptions: Options = {
       method: "get",
       ...(options ?? {}),
     };
@@ -42,7 +38,7 @@ export class RiotApiRoute<S extends DefaultSchema, P> {
       console.log(`> <${url}>`);
     }
 
-    return await lolClient(url, options).json<unknown>();
+    return await lolClient(url, requestOptions);
   }
 
   protected parseData(data: unknown): v.InferOutput<S> {
@@ -50,16 +46,31 @@ export class RiotApiRoute<S extends DefaultSchema, P> {
   }
 
   public async call(param: P, options?: Options): Promise<v.InferOutput<S>> {
-    await this.ensureRateLimit();
+    const requestedAt = await riotRateLimiter.acquire(this.configs.key);
 
     try {
-      const data = await this.fetchData(param, options);
+      const response = await this.fetchResponse(param, options);
+      await riotRateLimiter.update(
+        this.configs.key,
+        response.headers,
+        requestedAt
+      );
+
+      const data = await response.json<unknown>();
 
       return this.parseData(data);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        await riotRateLimiter.update(
+          this.configs.key,
+          error.response.headers,
+          requestedAt
+        );
+      }
 
-      throw e;
+      console.error(error);
+
+      throw error;
     }
   }
 }

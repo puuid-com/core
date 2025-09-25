@@ -1,6 +1,7 @@
 import { RiotApiRoute, type ApiRouteConfigs } from "@/server/api-route/ApiRoute";
+import { riotRateLimiter } from "@/server/api-route/riot/RiotRateLimiter";
 import { CacheService, type CacheDir } from "@/server/services/CacheService";
-import type { Options } from "ky";
+import { HTTPError, type Options } from "ky";
 import * as v from "valibot";
 
 type Schema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -26,14 +27,23 @@ export class CachedApiRoute<S extends Schema, P extends CachedApiRouteParams> ex
   }
 
   override async call(param: P, options?: Options, checkCache = true): Promise<v.InferOutput<S>> {
+    let requestedAt: number | undefined;
+
     try {
       const r2Cache = checkCache ? await this.tryGetCachedDataById(param.id) : null;
 
       if (r2Cache) return this.parseData(r2Cache);
 
-      await this.ensureRateLimit();
+      requestedAt = await riotRateLimiter.acquire(this.configs.key);
 
-      const data = await this.fetchData(param, options);
+      const response = await this.fetchResponse(param, options);
+      await riotRateLimiter.update(
+        this.configs.key,
+        response.headers,
+        requestedAt
+      );
+
+      const data = await response.json<unknown>();
 
       const parsedData = this.parseData(data);
 
@@ -41,6 +51,14 @@ export class CachedApiRoute<S extends Schema, P extends CachedApiRouteParams> ex
 
       return parsedData;
     } catch (e) {
+      if (requestedAt !== undefined && e instanceof HTTPError) {
+        await riotRateLimiter.update(
+          this.configs.key,
+          e.response.headers,
+          requestedAt
+        );
+      }
+
       console.error(e);
 
       throw e;
