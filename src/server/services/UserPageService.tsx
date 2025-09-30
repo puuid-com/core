@@ -101,7 +101,11 @@ export class UserPageService {
               with: {
                 statistics: {
                   with: {
-                    league: true,
+                    league: {
+                      with: {
+                        leaderboardEntry: true,
+                      },
+                    },
                   },
                 },
                 leagues: true,

@@ -1,6 +1,6 @@
 {
   "name": "@puuid/core",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "description": "Core utilities for puuid.com",
   "type": "module",
   "main": "./dist/index.js",
