@@ -219,7 +219,11 @@ export class SummonerService {
       with: {
         statistics: {
           with: {
-            league: true,
+            league: {
+              with: {
+                leaderboardEntry: true,
+              },
+            },
           },
         },
         leagues: true,
@@ -251,7 +255,11 @@ export class SummonerService {
           with: {
             statistics: {
               with: {
-                league: true,
+                league: {
+                  with: {
+                    leaderboardEntry: true,
+                  },
+                },
               },
             },
             leagues: true,

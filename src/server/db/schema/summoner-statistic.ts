@@ -13,6 +13,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { LeaderboardEntryRowType } from "@/server/db/schema/leaderboard";
 
 export type StatItemType = {
   wins: number;
@@ -101,5 +102,9 @@ export type StatisticRowType = typeof statisticTable.$inferSelect;
 export type InsertStatisticRowType = typeof statisticTable.$inferInsert;
 
 export type StatisticWithLeagueType = StatisticRowType & {
-  league: LeagueRowType | null;
+  league:
+    | (LeagueRowType & {
+        leaderboardEntry: LeaderboardEntryRowType | null;
+      })
+    | null;
 };

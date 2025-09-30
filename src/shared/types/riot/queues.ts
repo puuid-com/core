@@ -51,7 +51,7 @@ export type LoLQueueKeyType =
   | "RANKED_SOLO_5x5"
   | "blind_pick"
   | "RANKED_FLEX_SR"
-  | "aram"
+  | "ARAM"
   | "_3v3_blind_pick"
   | "_3v3_ranked_flex"
   | "blood_hunt_assassin"
@@ -363,7 +363,7 @@ export const LOL_QUEUES: Record<LoLQueueKeyType, LoLQueue> = {
     description: "Ranked Flex",
     notes: null,
   },
-  aram: {
+  ARAM: {
     queueId: 450,
     map: "Howling Abyss",
     description: "5v5 ARAM games",

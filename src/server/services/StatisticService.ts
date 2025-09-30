@@ -74,7 +74,11 @@ export class StatisticService {
         eq(statisticTable.queueType, queueType)
       ),
       with: {
-        league: true,
+        league: {
+          with: {
+            leaderboardEntry: true,
+          },
+        },
       },
     });
   }
@@ -101,7 +105,11 @@ export class StatisticService {
         inArray(statisticTable.puuid, puuids)
       ),
       with: {
-        league: true,
+        league: {
+          with: {
+            leaderboardEntry: true,
+          },
+        },
       },
     });
   }
@@ -464,13 +472,19 @@ export class StatisticService {
       refreshedAt: new Date(),
     };
 
+    const latestLeagueEntry = cachedLeagues.find(
+      (l) => l.id === statsToInsert.latestLeagueEntryId
+    );
+
     return {
       stats: {
         ...statsToInsert,
-        league:
-          cachedLeagues.find(
-            (l) => l.id === statsToInsert.latestLeagueEntryId
-          ) ?? null,
+        league: latestLeagueEntry
+          ? {
+              ...latestLeagueEntry,
+              leaderboardEntry: null,
+            }
+          : null,
       },
       lastMatch: matches.at(0),
       _toInsert: statsToInsert,
