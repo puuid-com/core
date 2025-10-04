@@ -413,15 +413,20 @@ export class StatisticService {
 
     const sameMainChampion = oldStats?.mainChampionId === mainChampionId;
 
-    const {
-      backgroundColor: mainChampionBackgroundColor,
-      foregroundColor: mainChampionForegroundColor,
-    } = sameMainChampion
-      ? {
-          backgroundColor: oldStats.mainChampionBackgroundColor,
-          foregroundColor: oldStats.mainChampionForegroundColor,
-        }
-      : await ServerColorsService.getMainColorsFromChampion(mainChampionId);
+    let mainChampionBackgroundColor;
+    let mainChampionForegroundColor;
+
+    try {
+      const { backgroundColor, foregroundColor } = sameMainChampion
+        ? {
+            backgroundColor: oldStats.mainChampionBackgroundColor,
+            foregroundColor: oldStats.mainChampionForegroundColor,
+          }
+        : await ServerColorsService.getMainColorsFromChampion(mainChampionId);
+
+      mainChampionBackgroundColor = backgroundColor;
+      mainChampionForegroundColor = foregroundColor;
+    } catch {}
 
     const mainChampionSkinId = sameMainChampion
       ? oldStats.mainChampionSkinId

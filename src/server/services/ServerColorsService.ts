@@ -28,7 +28,10 @@ export class ServerColorsService {
 
   private static async getColorsFromUrl(url: string) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch image, status ${res.status}`);
+    if (!res.ok)
+      throw new Error(
+        `Failed to fetch image, status ${res.status} : \`${res.url}\``
+      );
     const buf = Buffer.from(await res.arrayBuffer());
 
     const palette = await new Vibrant(buf, {
