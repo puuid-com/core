@@ -1,12 +1,19 @@
-import { leaderboardEntryTable } from "@/server/db/schema/leaderboard";
+import {
+  leaderboardEntryTable,
+  type LeaderboardRowType,
+} from "@/server/db/schema/leaderboard";
 import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
 import { matchSummonerTable } from "@/server/db/schema/match";
 import { matchCommentTable } from "@/server/db/schema/match-comments";
 import { noteTable, type NoteRowType } from "@/server/db/schema/note";
-import { summonerRefresh } from "@/server/db/schema/summoner-refresh";
 import {
-  statisticTable,
+  summonerRefresh,
+  type SummonerRefreshType,
+} from "@/server/db/schema/summoner-refresh";
+import {
+  summonerStatisticTable,
   type StatisticWithLeagueType,
+  type SummonerStatisticRowType,
 } from "@/server/db/schema/summoner-statistic";
 import type { LolRegionType } from "@/shared/types/riot/common";
 import { relations } from "drizzle-orm";
@@ -33,6 +40,11 @@ export const summonerTable = pgTable(
     profileIconId: integer("profile_icon_id").notNull(),
     summonerLevel: integer("summoner_level").notNull(),
     region: text("region").$type<LolRegionType>().notNull(),
+
+    mainChampionId: integer("main_champion_id"),
+    mainChampionSkinId: integer("main_champion_skin_id"),
+    mainChampionBackgroundColor: text("main_champion_background_color"),
+    mainChampionForegroundColor: text("main_champion_foreground_color"),
   },
   (t) => [
     uniqueIndex("uq_ids_riot_id").on(t.riotId),
@@ -40,17 +52,12 @@ export const summonerTable = pgTable(
   ]
 );
 
-export const summonerTableRelations = relations(
-  summonerTable,
-  ({ many, one }) => ({
-    statistics: many(statisticTable),
-    leagues: many(leagueTable),
-    refresh: one(summonerRefresh),
-    comments: many(matchCommentTable),
-    notes: many(noteTable),
-    matchSummoner: many(matchSummonerTable),
-  })
-);
+export const summonerTableRelations = relations(summonerTable, ({ many }) => ({
+  leagues: many(leagueTable),
+  refreshes: many(summonerRefresh),
+  notes: many(noteTable),
+  matchSummoner: many(matchSummonerTable),
+}));
 
 export type SummonerType = typeof summonerTable.$inferSelect;
 export type InsertSummonerType = typeof summonerTable.$inferInsert;
@@ -59,7 +66,12 @@ export type SummonerWithNote = SummonerType & {
   note: NoteRowType | undefined;
 };
 export type SummonerWithRelationsType = SummonerType & {
-  statistics: StatisticWithLeagueType[];
   leagues: LeagueRowType[];
-  refresh: typeof summonerRefresh.$inferSelect | null;
+  refreshes: (SummonerRefreshType & {
+    summonerStatistic: SummonerStatisticRowType & {
+      league: LeagueRowType & {
+        leaderboardEntry: LeaderboardRowType;
+      };
+    };
+  })[];
 };

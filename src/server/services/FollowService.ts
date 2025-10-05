@@ -12,7 +12,9 @@ export class FollowService {
   static async unfollowSummoner(puuid: string, userId: string) {
     return db
       .delete(followingTable)
-      .where(and(eq(followingTable.puuid, puuid), eq(followingTable.userId, userId)));
+      .where(
+        and(eq(followingTable.puuid, puuid), eq(followingTable.userId, userId))
+      );
   }
 
   static async getFollowersCount(puuid: string) {
@@ -30,7 +32,13 @@ export class FollowService {
       with: {
         summoner: {
           with: {
-            statistics: true,
+            refreshes: {
+              where: (t, { eq }) => eq(t.queueType, "RANKED_SOLO_5x5"),
+              with: {
+                summonerStatistic: true,
+                recentSummonerStatistic: true,
+              },
+            },
             notes: {
               where: eq(noteTable.userId, userId),
             },
@@ -49,7 +57,10 @@ export class FollowService {
 
   static async isFollowing(puuid: string, userId: string) {
     const data = await db.query.followingTable.findFirst({
-      where: and(eq(followingTable.puuid, puuid), eq(followingTable.userId, userId)),
+      where: and(
+        eq(followingTable.puuid, puuid),
+        eq(followingTable.userId, userId)
+      ),
     });
 
     return !!data;

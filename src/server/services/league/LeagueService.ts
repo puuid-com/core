@@ -68,7 +68,7 @@ export class LeagueService {
 
   static async batchCacheLeaguesBySummonersTx(
     tx: TransactionType,
-    summoners: SummonerType[]
+    summoners: Pick<SummonerType, "puuid" | "region">[]
   ) {
     const leagues = await Promise.all(
       summoners.map<Promise<InsertLeagueRowType[]>>(async (summoner) => {
@@ -86,9 +86,19 @@ export class LeagueService {
 
     const flattened = leagues.flat();
 
-    if (flattened.length === 0) return [];
+    if (flattened.length === 0) return {};
 
-    return this.upsertLeaguesTx(tx, flattened);
+    const newLeagues = await this.upsertLeaguesTx(tx, flattened);
+
+    return summoners.reduce((acc, summoner) => {
+      const summonerLeagues = newLeagues.filter(
+        (l) => l.puuid === summoner.puuid
+      );
+
+      acc[summoner.puuid] = summonerLeagues;
+
+      return acc;
+    }, {} as Record<SummonerType["puuid"], LeagueRowType[]>);
   }
 
   static async cacheLeaguesTx(

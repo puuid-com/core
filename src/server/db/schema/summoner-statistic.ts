@@ -1,6 +1,5 @@
-import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import type { LolPositionType } from "@/shared/types/dto/MatchDTO";
-import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
+import { type LeagueRowType } from "@/server/db/schema/league";
 import { summonerTable } from "@/server/db/schema/summoner";
 import { relations } from "drizzle-orm";
 import {
@@ -8,12 +7,12 @@ import {
   integer,
   jsonb,
   pgTable,
-  primaryKey,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 import type { LeaderboardEntryRowType } from "@/server/db/schema/leaderboard";
+import { uuidv7 } from "uuidv7";
 
 export type StatItemType = {
   wins: number;
@@ -31,77 +30,66 @@ export type StatsByTeamId = (StatItemType & { teamId: number })[];
 
 export type StatsByTeammate = { wins: number; losses: number; puuid: string }[];
 
-export const statisticTable = pgTable(
-  "summoner_statistic",
-  {
-    puuid: text("puuid")
-      .references(() => summonerTable.puuid, { onDelete: "cascade" })
-      .notNull(),
-    queueType: text("queue_type").$type<LolQueueType>().notNull(),
+export const summonerStatisticTable = pgTable("summoner_statistic", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  puuid: text("puuid")
+    .references(() => summonerTable.puuid, { onDelete: "cascade" })
+    .notNull(),
 
-    latestLeagueEntryId: uuid("latest_league_entry_id").references(
-      () => leagueTable.id,
-      {
-        onDelete: "set null",
-      }
-    ),
-    mainPosition: text("main_position").$type<LolPositionType | null>(),
+  mainPosition: text("main_position").$type<LolPositionType | null>(),
+  mainChampionId: integer("main_champion_id"),
 
-    mainChampionId: integer("main_champion_id").notNull(),
-    mainChampionSkinId: integer("main_champion_skin_id").notNull().default(0),
-    mainChampionBackgroundColor: text("main_champion_background_color"),
-    mainChampionForegroundColor: text("main_champion_foreground_color"),
+  kills: integer("kills").notNull(),
+  assists: integer("assists").notNull(),
+  deaths: integer("deaths").notNull(),
 
-    kills: integer("kills").notNull(),
-    assists: integer("assists").notNull(),
-    deaths: integer("deaths").notNull(),
+  averageKda: doublePrecision("average_kda").notNull(),
+  averageKillPerGame: doublePrecision("average_kill_per_game").notNull(),
+  averageDeathPerGame: doublePrecision("average_death_per_game").notNull(),
+  averageAssistPerGame: doublePrecision("average_assist_per_game").notNull(),
 
-    averageKda: doublePrecision("average_kda").notNull(),
-    averageKillPerGame: doublePrecision("average_kill_per_game").notNull(),
-    averageDeathPerGame: doublePrecision("average_death_per_game").notNull(),
-    averageAssistPerGame: doublePrecision("average_assist_per_game").notNull(),
+  statsByTeammates: jsonb("stats_by_teammates")
+    .$type<StatsByTeammate>()
+    .notNull(),
 
-    statsByTeammates: jsonb("stats_by_teammates")
-      .$type<StatsByTeammate>()
-      .notNull(),
+  // stats
+  statsByChampionId: jsonb("stats_by_champion_id")
+    .$type<StatsByChampionId>()
+    .notNull(),
+  statsByPosition: jsonb("stats_by_position")
+    .$type<StatsByIndividualPosition>()
+    .notNull(),
+  statsByOppositePositionChampionId: jsonb(
+    "stats_by_opposite_position_champion_id"
+  )
+    .$type<StatsByChampionId>()
+    .notNull(),
 
-    // stats
-    statsByChampionId: jsonb("stats_by_champion_id")
-      .$type<StatsByChampionId>()
-      .notNull(),
-    statsByPosition: jsonb("stats_by_position")
-      .$type<StatsByIndividualPosition>()
-      .notNull(),
-    statsByOppositePositionChampionId: jsonb(
-      "stats_by_opposite_position_champion_id"
-    )
-      .$type<StatsByChampionId>()
-      .notNull(),
+  wins: integer("wins").notNull(),
+  losses: integer("losses").notNull(),
 
-    wins: integer("wins").notNull(),
-    losses: integer("losses").notNull(),
-
-    refreshedAt: timestamp("refreshed_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.puuid, t.queueType] })]
+  createdAt: timestamp("refreshed_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+export const summonerStatisticTableRelations = relations(
+  summonerStatisticTable,
+  ({ one }) => ({
+    summoner: one(summonerTable, {
+      fields: [summonerStatisticTable.puuid],
+      references: [summonerTable.puuid],
+    }),
+  })
 );
-export const statisticTableRelations = relations(statisticTable, ({ one }) => ({
-  summoner: one(summonerTable, {
-    fields: [statisticTable.puuid],
-    references: [summonerTable.puuid],
-  }),
-  league: one(leagueTable, {
-    fields: [statisticTable.latestLeagueEntryId],
-    references: [leagueTable.id],
-  }),
-}));
 
-export type StatisticRowType = typeof statisticTable.$inferSelect;
-export type InsertStatisticRowType = typeof statisticTable.$inferInsert;
+export type SummonerStatisticRowType =
+  typeof summonerStatisticTable.$inferSelect;
+export type InsertSummonerStatisticRowType =
+  typeof summonerStatisticTable.$inferInsert;
 
-export type StatisticWithLeagueType = StatisticRowType & {
+export type StatisticWithLeagueType = SummonerStatisticRowType & {
   league:
     | (LeagueRowType & {
         leaderboardEntry: LeaderboardEntryRowType | null;

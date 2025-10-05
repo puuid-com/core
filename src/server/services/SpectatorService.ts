@@ -3,7 +3,7 @@ import {
   SpectatorFeaturedGamesRoute,
 } from "@/server/api-route/riot/SpectatorRoutes";
 import type { SummonerType } from "@/server/db/schema/summoner";
-import { RefreshService } from "@/server/services/RefreshService";
+import { SummonerRefreshService } from "@/server/services/SummonerRefreshService";
 import { SummonerService } from "@/server/services/SummonerService";
 import type { LolRegionType } from "@/shared/types/riot/common";
 
@@ -47,7 +47,7 @@ export class SpectatorService {
       )
     ).map((s) => s.summoner);
 
-    const refreshedStats = await RefreshService.batchFastRefresh(
+    const refreshedStats = await SummonerRefreshService.batchFastRefresh(
       summoners,
       "RANKED_SOLO_5x5"
     );

@@ -99,8 +99,10 @@ export class UserPageService {
           with: {
             summoner: {
               with: {
-                statistics: {
+                leagues: true,
+                refreshes: {
                   with: {
+                    summonerStatistic: true,
                     league: {
                       with: {
                         leaderboardEntry: true,
@@ -108,8 +110,6 @@ export class UserPageService {
                     },
                   },
                 },
-                leagues: true,
-                refresh: true,
               },
             },
           },
@@ -192,8 +192,12 @@ export class UserPageService {
           with: {
             summoner: {
               with: {
-                statistics: true,
-                refresh: true,
+                refreshes: {
+                  with: {
+                    recentSummonerStatistic: true,
+                    summonerStatistic: true,
+                  },
+                },
                 leagues: true,
               },
             },

@@ -295,6 +295,41 @@
       "when": 1758805630479,
       "tag": "0041_spooky_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1759562736077,
+      "tag": "0042_mean_retro_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1759563715287,
+      "tag": "0043_clammy_ogun",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1759563771439,
+      "tag": "0044_blue_johnny_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1759564402430,
+      "tag": "0045_daffy_dragon_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1759610407523,
+      "tag": "0046_brown_energizer",
+      "breakpoints": true
     }
   ]
 }

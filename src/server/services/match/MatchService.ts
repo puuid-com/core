@@ -39,6 +39,8 @@ import * as v from "valibot";
 import { summonerTable, type SummonerType } from "@/server/db/schema/summoner";
 import type { PartialOmit } from "@/shared/types/utils";
 import { alias } from "drizzle-orm/pg-core";
+import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
+import { LOL_QUEUES } from "@/shared/types/riot/queues";
 
 export type GetMatchesFiltersType = {
   playedChampionIds: number[]; // pc
@@ -576,5 +578,48 @@ export class MatchService {
     if (!data) {
       throw new Error("Summoner was not in the match.");
     }
+  }
+
+  public static async batchGetMatchesPagedTx(
+    tx: TransactionType,
+    summoners: Pick<SummonerType, "puuid" | "region">[],
+    _filters: InputPagedMatchIDsQueryParams
+  ) {
+    const filters: OutputPagedMatchIDsQueryParams = {
+      count: 10,
+      start: 0,
+      ..._filters,
+    };
+
+    const matchIdsData = await Promise.all(
+      summoners.map(async (s) => {
+        const ids = await MatchService.getMatchIdsDTOByPuuidPaged(
+          { region: s.region, puuid: s.puuid },
+          filters
+        );
+
+        return {
+          puuid: s.puuid,
+          matchIds: ids,
+        };
+      })
+    );
+
+    const matches = await MatchService.getAndSaveMatcheIdsTx(
+      tx,
+      matchIdsData.flatMap((m) => m.matchIds.ids)
+    );
+
+    return summoners.reduce((acc, s) => {
+      const matchIds = matchIdsData.find((m) => m.puuid === s.puuid)!.matchIds
+        .ids;
+      const summonerMatches = matches.filter((m) =>
+        matchIds.includes(m.matchId)
+      );
+
+      acc[s.puuid] = summonerMatches;
+
+      return acc;
+    }, {} as Record<SummonerType["puuid"], MatchWithSummonersType[]>);
   }
 }

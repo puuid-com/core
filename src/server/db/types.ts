@@ -35,8 +35,8 @@ export type {
   StatsByIndividualPosition,
   StatsByTeamId,
   StatsByTeammate,
-  StatisticRowType,
-  InsertStatisticRowType,
+  SummonerStatisticRowType as StatisticRowType,
+  InsertSummonerStatisticRowType as InsertStatisticRowType,
   StatisticWithLeagueType,
 } from "./schema/summoner-statistic";
 

@@ -16,8 +16,9 @@ import {
 import type { User } from "better-auth";
 import { noteTable, type NoteRowType } from "@/server/db/schema/note";
 import { matchSummonerTable } from "@/server/db/schema/match";
-import type { LolRegionType } from "@/shared";
+import type { LolQueueType, LolRegionType } from "@/shared";
 import { P } from "node_modules/better-auth/dist/shared/better-auth.BBLxGH6k";
+import { ServerColorsService } from "@/server/services";
 
 export const getPartsFromRiotID = (riotID: string) => {
   const [gameName, tagLine] = riotID.split("#");
@@ -103,7 +104,7 @@ export class SummonerService {
     const data = await db.query.summonerTable.findMany({
       where: inArray(summonerTable.puuid, puuids),
       with: {
-        statistics: true,
+        refreshes: true,
         matchSummoner: {
           limit: 1,
           with: {
@@ -126,7 +127,7 @@ export class SummonerService {
     return db.query.summonerTable.findMany({
       where: whereClause,
       with: {
-        statistics: true,
+        refreshes: true,
         leagues: true,
       },
       limit: 25,
@@ -217,8 +218,10 @@ export class SummonerService {
     return tx.query.summonerTable.findFirst({
       where: eq(summonerTable.puuid, puuid),
       with: {
-        statistics: {
+        leagues: true,
+        refreshes: {
           with: {
+            summonerStatistic: true,
             league: {
               with: {
                 leaderboardEntry: true,
@@ -226,8 +229,6 @@ export class SummonerService {
             },
           },
         },
-        leagues: true,
-        refresh: true,
       },
     });
   }
@@ -253,8 +254,10 @@ export class SummonerService {
       : await tx.query.summonerTable.findFirst({
           where: eq(summonerTable.riotId, riotId),
           with: {
-            statistics: {
+            leagues: true,
+            refreshes: {
               with: {
+                summonerStatistic: true,
                 league: {
                   with: {
                     leaderboardEntry: true,
@@ -262,8 +265,6 @@ export class SummonerService {
                 },
               },
             },
-            leagues: true,
-            refresh: true,
           },
         });
 
@@ -453,6 +454,58 @@ export class SummonerService {
       profileIconId: summoner.profileIconId,
       region: accountRegion.region,
       createdAt: new Date(),
+
+      mainChampionBackgroundColor: null,
+      mainChampionForegroundColor: null,
+      mainChampionId: null,
+      mainChampionSkinId: null,
     };
+  }
+
+  static async changeMainChampionColors(
+    puuid: SummonerType["puuid"],
+    skinId: number
+  ) {
+    const summoner = await db.query.summonerTable.findFirst({
+      where: and(eq(summonerTable.puuid, puuid)),
+    });
+
+    if (!summoner) {
+      throw new Error("No summoner found");
+    }
+
+    const mainChampionId = summoner.mainChampionId;
+
+    if (!mainChampionId) {
+      throw new Error("No symmoner champion id found");
+    }
+
+    let mainChampionBackgroundColor: string | undefined;
+    let mainChampionForegroundColor: string | undefined;
+
+    try {
+      const { backgroundColor, foregroundColor } =
+        await ServerColorsService.getMainColorsFromChampionSkin(
+          mainChampionId,
+          skinId
+        );
+
+      mainChampionBackgroundColor = backgroundColor;
+      mainChampionForegroundColor = foregroundColor;
+    } catch (e) {
+      console.error(e);
+
+      throw new Error("Failed to get colors");
+    }
+
+    return db
+      .update(summonerTable)
+      .set({
+        mainChampionBackgroundColor,
+        mainChampionForegroundColor,
+        mainChampionSkinId: skinId,
+      })
+      .where(and(eq(summonerTable.puuid, puuid)))
+      .returning();
   }
 }
