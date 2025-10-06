@@ -1,6 +1,10 @@
 import { symmetricDiffById as symmetricDiff } from "@/lib/utils";
-import { db } from "@/server/db";
-import { summonerRefresh } from "@/server/db/schema/summoner-refresh";
+import { db, type TransactionType } from "@/server/db";
+import type { LeagueWithLeaderboardEntryType } from "@/server/db/schema/league";
+import {
+  summonerRefresh,
+  type SummonerRefreshWithStatisticType,
+} from "@/server/db/schema/summoner-refresh";
 import { summonerStatisticTable } from "@/server/db/schema/summoner-statistic";
 import type {
   InsertSummonerRefreshType,
@@ -12,6 +16,7 @@ import type {
 } from "@/server/db/types";
 import { LeagueService } from "@/server/services/league";
 import { MatchService } from "@/server/services/match/MatchService";
+import type { RefreshProgressMsgType } from "@/server/services/RefreshProgressService";
 import { SummonerStatisticService } from "@/server/services/SummonerStatisticService";
 import { LOL_QUEUES, type LolQueueType } from "@/shared";
 import { and, eq, inArray } from "drizzle-orm";
@@ -21,6 +26,29 @@ import { uuidv7 } from "uuidv7";
 export class SummonerRefreshService {
   private static MIN_SEC_BETWEEN_REFRESH = 1; // 1 sec
   private static TIME_BEFORE_FORCED_REFRESH = 2 * 24 * 60 * 60 * 1000;
+
+  static async *progressFetchStats(
+    id: Pick<SummonerType, "region" | "puuid">,
+    queue: LolQueueType,
+    leagues: LeagueWithLeaderboardEntryType[],
+    matches: MatchWithSummonersType[]
+  ): AsyncGenerator<RefreshProgressMsgType, void, void> {
+    yield { status: "step_started", step: "fetching_stats" };
+    yield { status: "step_in_progress", step: "fetching_stats" };
+
+    await db.transaction(async (tx) => {
+      return await this.refreshSummonersTx(
+        tx,
+        [id.puuid],
+        queue,
+        true,
+        { [id.puuid]: matches },
+        { [id.puuid]: leagues }
+      );
+    });
+
+    yield { status: "step_finished", step: "fetching_stats" };
+  }
 
   private static async shouldForceRefresh(
     summonerRefresh: SummonerRefreshType
@@ -32,10 +60,45 @@ export class SummonerRefreshService {
     return Date.now() - lastMs > this.TIME_BEFORE_FORCED_REFRESH;
   }
 
-  static async getRefreshSummoners(
+  static async getSummonerRefreshes(puuids: SummonerType["puuid"][]) {
+    const data = await db.query.summonerRefresh.findMany({
+      where: and(inArray(summonerRefresh.puuid, puuids)),
+      with: {
+        recentSummonerStatistic: true,
+        summonerStatistic: true,
+        league: {
+          with: {
+            leaderboardEntry: true,
+          },
+        },
+      },
+    });
+
+    return puuids.reduce<
+      {
+        puuid: SummonerType["puuid"];
+        refreshes: Partial<
+          Record<LolQueueType, SummonerRefreshWithStatisticType>
+        >;
+      }[]
+    >((acc, puuid) => {
+      acc.push({
+        puuid: puuid,
+        refreshes: {
+          ARAM: data.find((d) => d.queueType === "ARAM"),
+          RANKED_FLEX_SR: data.find((d) => d.queueType === "RANKED_FLEX_SR"),
+          RANKED_SOLO_5x5: data.find((d) => d.queueType === "RANKED_SOLO_5x5"),
+        },
+      });
+
+      return acc;
+    }, []);
+  }
+
+  static async getQueueSummonerRefreshes(
     puuids: SummonerType["puuid"][],
     queueType: LolQueueType
-  ) {
+  ): Promise<SummonerRefreshWithStatisticType[]> {
     return db.query.summonerRefresh.findMany({
       where: and(
         inArray(summonerRefresh.puuid, puuids),
@@ -44,6 +107,11 @@ export class SummonerRefreshService {
       with: {
         recentSummonerStatistic: true,
         summonerStatistic: true,
+        league: {
+          with: {
+            leaderboardEntry: true,
+          },
+        },
       },
     });
   }
@@ -53,9 +121,32 @@ export class SummonerRefreshService {
     queueType: LolQueueType,
     isFullRefresh: boolean,
     matches: Record<SummonerType["puuid"], MatchWithSummonersType[]>,
-    leagues: Record<SummonerType["puuid"], LeagueRowType[]>
+    leagues: Record<SummonerType["puuid"], LeagueWithLeaderboardEntryType[]>
   ) {
-    const currentRefreshes = await this.getRefreshSummoners(puuids, queueType);
+    return db.transaction((tx) =>
+      this.refreshSummonersTx(
+        tx,
+        puuids,
+        queueType,
+        isFullRefresh,
+        matches,
+        leagues
+      )
+    );
+  }
+
+  static async refreshSummonersTx(
+    tx: TransactionType,
+    puuids: SummonerType["puuid"][],
+    queueType: LolQueueType,
+    isFullRefresh: boolean,
+    matches: Record<SummonerType["puuid"], MatchWithSummonersType[]>,
+    leagues: Record<SummonerType["puuid"], LeagueWithLeaderboardEntryType[]>
+  ): Promise<SummonerRefreshWithStatisticType[]> {
+    const currentRefreshes = await this.getQueueSummonerRefreshes(
+      puuids,
+      queueType
+    );
     const refreshesToKeep = currentRefreshes.filter(
       (r) => !this.shouldForceRefresh(r)
     );
@@ -65,56 +156,58 @@ export class SummonerRefreshService {
       "puuid"
     ).map((r) => r.puuid);
 
-    const newRefreshes = await db.transaction(async (tx) => {
-      const newStatistics =
-        await SummonerStatisticService.insertSummonerStatisticsTx(
-          tx,
-          puuidsToRefresh,
-          matches
-        );
+    const newStatistics =
+      await SummonerStatisticService.insertSummonerStatisticsTx(
+        tx,
+        puuidsToRefresh,
+        matches
+      );
 
-      const insertValues = newStatistics
-        .map<SummonerRefreshType | null>((s) => {
-          const lastGameCreationMs =
-            isFullRefresh && matches[s.puuid]?.length
-              ? Math.max(...matches[s.puuid]!.map((m) => m.gameCreationMs))
-              : null;
-          const leagueId =
-            leagues[s.puuid]?.find((l) => l.queueType === queueType)?.id ??
-            null;
+    const insertValues = newStatistics
+      .map<SummonerRefreshType | null>((s) => {
+        const lastGameCreationMs =
+          isFullRefresh && matches[s.puuid]?.length
+            ? Math.max(...matches[s.puuid]!.map((m) => m.gameCreationMs))
+            : null;
+        const leagueId =
+          leagues[s.puuid]?.find((l) => l.queueType === queueType)?.id ?? null;
 
-          if (!s.recentSummonerStatistic || !s.summonerStatistic) return null;
+        if (!s.recentSummonerStatistic || !s.summonerStatistic) return null;
 
-          return {
-            id: uuidv7(),
-            isFullRefresh: true,
-            lastGameCreationEpochSec: lastGameCreationMs
-              ? Math.floor(lastGameCreationMs / 1000)
-              : null,
-            latestLeagueEntryId: leagueId,
-            puuid: s.puuid,
-            queueType: queueType,
-            refreshedAt: new Date(),
+        return {
+          id: uuidv7(),
+          isFullRefresh: true,
+          lastGameCreationEpochSec: lastGameCreationMs
+            ? Math.floor(lastGameCreationMs / 1000)
+            : null,
+          latestLeagueEntryId: leagueId,
+          puuid: s.puuid,
+          queueType: queueType,
+          refreshedAt: new Date(),
 
-            recentSummonerStatisticId: s.recentSummonerStatistic?.id,
-            summonerStatisticId: s.summonerStatistic?.id,
-          };
-        })
-        .filter(Boolean) as SummonerRefreshType[];
+          recentSummonerStatisticId: s.recentSummonerStatistic.id,
+          summonerStatisticId: s.summonerStatistic.id,
+        };
+      })
+      .filter(Boolean) as SummonerRefreshType[];
 
-      await tx.insert(summonerRefresh).values(insertValues);
+    await tx.insert(summonerRefresh).values(insertValues);
 
-      return insertValues.map((value) => {
+    const newRefreshes: SummonerRefreshWithStatisticType[] = insertValues.map(
+      (value) => {
         const puuid = value.puuid;
         const stats = newStatistics.find((s) => s.puuid === puuid)!;
 
         return {
           ...value,
-          recentSummonerStatistic: stats.summonerStatistic,
-          summonerStatistic: stats.recentSummonerStatistic,
+          recentSummonerStatistic: stats.summonerStatistic ?? null,
+          summonerStatistic: stats.recentSummonerStatistic ?? null,
+          league:
+            leagues[puuid]?.find((l) => l.id === value.latestLeagueEntryId) ??
+            null,
         };
-      });
-    });
+      }
+    );
 
     return [...refreshesToKeep, ...newRefreshes];
   }

@@ -17,6 +17,7 @@ import { uuidv7 } from "uuidv7";
 import {
   leaderboardEntryTable,
   leaderboardTable,
+  type LeaderboardEntryRowType,
 } from "@/server/db/schema/leaderboard";
 
 export const leagueTable = pgTable(
@@ -58,6 +59,10 @@ export const leagueTable = pgTable(
 
 export type LeagueRowType = typeof leagueTable.$inferSelect;
 export type InsertLeagueRowType = typeof leagueTable.$inferInsert;
+
+export type LeagueWithLeaderboardEntryType = LeagueRowType & {
+  leaderboardEntry: LeaderboardEntryRowType | null;
+};
 
 export const leagueEntryTableRelations = relations(leagueTable, ({ one }) => ({
   summoner: one(summonerTable, {

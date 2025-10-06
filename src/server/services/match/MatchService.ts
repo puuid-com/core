@@ -41,6 +41,7 @@ import type { PartialOmit } from "@/shared/types/utils";
 import { alias } from "drizzle-orm/pg-core";
 import type { LolQueueType } from "@/shared/types/dto/LeagueDTO";
 import { LOL_QUEUES } from "@/shared/types/riot/queues";
+import type { RefreshProgressMsgType } from "@/server/services/RefreshProgressService";
 
 export type GetMatchesFiltersType = {
   playedChampionIds: number[]; // pc
@@ -64,6 +65,92 @@ export const defaultMatchesFilters: PartialOmit<
 };
 
 export class MatchService {
+  static async *progressFetchMatches(
+    id: Pick<SummonerType, "region" | "puuid">,
+    queueId: MatchRowType["queueId"],
+    startTimeEpoch: number | undefined
+  ): AsyncGenerator<RefreshProgressMsgType, MatchWithSummonersType[], void> {
+    const { MatchService } = await import(
+      "@/server/services/match/MatchService"
+    );
+
+    const ids = await MatchService._getAllMatcheIdsDTOByPuuid(
+      id,
+      queueId,
+      startTimeEpoch
+    );
+
+    yield {
+      status: "step_in_progress",
+      step: "fetching_matches",
+      matchesToFetch: ids.length,
+    };
+
+    if (ids.length === 0) {
+      yield {
+        status: "step_finished",
+        step: "fetching_matches",
+        matchesFetched: 0,
+      };
+
+      return [];
+    }
+
+    const alreadySaved = await MatchService.getMatchesDBByMatchIds(ids);
+
+    const notSavedIds = ids.filter(
+      (mid) => !alreadySaved.some((m) => m.matchId === mid)
+    );
+
+    if (alreadySaved.length > 0) {
+      yield {
+        status: "step_in_progress",
+        step: "fetching_matches",
+        matchesFetched: alreadySaved.length,
+      };
+    }
+
+    const batchSize = 50;
+    const totalBatches = Math.ceil(notSavedIds.length / batchSize);
+    const allNewMatches: MatchWithSummonersType[] = alreadySaved;
+
+    for (let b = 0; b < totalBatches; b++) {
+      const start = b * batchSize;
+      const end = Math.min(notSavedIds.length, start + batchSize);
+      const slice = notSavedIds.slice(start, end);
+
+      const tasks = slice.map((mid) =>
+        MatchService.getMatchDTOById(mid, false)
+      );
+
+      const newMatches = await Promise.all(tasks);
+
+      yield {
+        status: "step_in_progress",
+        step: "fetching_matches",
+        matchesFetched: newMatches.length,
+      };
+
+      if (newMatches.length === 0) continue;
+
+      const _newMatches = await db.transaction(async (tx) => {
+        return await MatchService.saveMatchesDTOtoDBTx(tx, newMatches);
+      });
+
+      allNewMatches.push(..._newMatches);
+
+      console.log(`Fetched batch ${b + 1}/${totalBatches}`);
+    }
+
+    yield {
+      status: "step_finished",
+      step: "fetching_matches",
+      matchesFetched: 0,
+    };
+
+    return allNewMatches;
+  }
+
   private static riotMatchQueryParamsToCacheWhereConditions(
     summoner: Pick<SummonerType, "region" | "puuid">,
     params: OutputPagedMatchIDsQueryParams,

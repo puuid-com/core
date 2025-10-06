@@ -19,6 +19,7 @@ import { matchSummonerTable } from "@/server/db/schema/match";
 import type { LolQueueType, LolRegionType } from "@/shared";
 import { P } from "node_modules/better-auth/dist/shared/better-auth.BBLxGH6k";
 import { ServerColorsService } from "@/server/services";
+import type { RefreshProgressMsgType } from "@/server/services/RefreshProgressService";
 
 export const getPartsFromRiotID = (riotID: string) => {
   const [gameName, tagLine] = riotID.split("#");
@@ -36,6 +37,21 @@ export const getPartsFromRiotID = (riotID: string) => {
 };
 
 export class SummonerService {
+  static async *progressFetchSummoner(
+    puuid: SummonerType["puuid"]
+  ): AsyncGenerator<RefreshProgressMsgType, SummonerType, void> {
+    yield { status: "step_started", step: "fetching_summoner" };
+    yield { status: "step_in_progress", step: "fetching_summoner" };
+
+    const summoner = await db.transaction((tx) =>
+      SummonerService.getOrCreateSummonerByPuuidTx(tx, puuid, true)
+    );
+
+    yield { status: "step_finished", step: "fetching_summoner" };
+
+    return summoner;
+  }
+
   static async batchSafeCreate(
     region: LolRegionType,
     puuids: SummonerType["puuid"][]
@@ -222,6 +238,7 @@ export class SummonerService {
         refreshes: {
           with: {
             summonerStatistic: true,
+            recentSummonerStatistic: true,
             league: {
               with: {
                 leaderboardEntry: true,
@@ -258,6 +275,7 @@ export class SummonerService {
             refreshes: {
               with: {
                 summonerStatistic: true,
+                recentSummonerStatistic: true,
                 league: {
                   with: {
                     leaderboardEntry: true,

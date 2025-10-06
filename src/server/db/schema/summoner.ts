@@ -1,7 +1,4 @@
-import {
-  leaderboardEntryTable,
-  type LeaderboardRowType,
-} from "@/server/db/schema/leaderboard";
+import type { LeaderboardEntryRowType } from "@/server/db/schema/leaderboard";
 import { leagueTable, type LeagueRowType } from "@/server/db/schema/league";
 import { matchSummonerTable } from "@/server/db/schema/match";
 import { matchCommentTable } from "@/server/db/schema/match-comments";
@@ -9,12 +6,9 @@ import { noteTable, type NoteRowType } from "@/server/db/schema/note";
 import {
   summonerRefresh,
   type SummonerRefreshType,
+  type SummonerRefreshWithStatisticType,
 } from "@/server/db/schema/summoner-refresh";
-import {
-  summonerStatisticTable,
-  type StatisticWithLeagueType,
-  type SummonerStatisticRowType,
-} from "@/server/db/schema/summoner-statistic";
+import { type SummonerStatisticRowType } from "@/server/db/schema/summoner-statistic";
 import type { LolRegionType } from "@/shared/types/riot/common";
 import { relations } from "drizzle-orm";
 import {
@@ -67,11 +61,5 @@ export type SummonerWithNote = SummonerType & {
 };
 export type SummonerWithRelationsType = SummonerType & {
   leagues: LeagueRowType[];
-  refreshes: (SummonerRefreshType & {
-    summonerStatistic: SummonerStatisticRowType & {
-      league: LeagueRowType & {
-        leaderboardEntry: LeaderboardRowType;
-      };
-    };
-  })[];
+  refreshes: SummonerRefreshWithStatisticType[];
 };

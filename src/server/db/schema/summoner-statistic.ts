@@ -39,7 +39,7 @@ export const summonerStatisticTable = pgTable("summoner_statistic", {
     .notNull(),
 
   mainPosition: text("main_position").$type<LolPositionType | null>(),
-  mainChampionId: integer("main_champion_id"),
+  mainChampionId: integer("main_champion_id").notNull(),
 
   kills: integer("kills").notNull(),
   assists: integer("assists").notNull(),

@@ -1,0 +1,1 @@
+ALTER TABLE "summoner_statistic" ALTER COLUMN "main_champion_id" SET NOT NULL;

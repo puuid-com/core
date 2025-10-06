@@ -11,8 +11,15 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
-import { summonerStatisticTable } from "@/server/db/schema/summoner-statistic";
-import { leagueTable } from "@/server/db/schema/league";
+import {
+  summonerStatisticTable,
+  type SummonerStatisticRowType,
+} from "@/server/db/schema/summoner-statistic";
+import {
+  leagueTable,
+  type LeagueRowType,
+  type LeagueWithLeaderboardEntryType,
+} from "@/server/db/schema/league";
 
 export const summonerRefresh = pgTable(
   "summoner_refresh",
@@ -33,12 +40,14 @@ export const summonerRefresh = pgTable(
       }
     ),
 
-    summonerStatisticId: uuid("summoner_statistic_id")
-      .references(() => summonerStatisticTable.id, { onDelete: "cascade" })
-      .notNull(),
-    recentSummonerStatisticId: uuid("recent_summoner_statistic_id")
-      .references(() => summonerStatisticTable.id, { onDelete: "cascade" })
-      .notNull(),
+    summonerStatisticId: uuid("summoner_statistic_id").references(
+      () => summonerStatisticTable.id,
+      { onDelete: "cascade" }
+    ),
+    recentSummonerStatisticId: uuid("recent_summoner_statistic_id").references(
+      () => summonerStatisticTable.id,
+      { onDelete: "cascade" }
+    ),
 
     lastGameCreationEpochSec: integer("last_game_creation_epoch_sec"),
 
@@ -80,3 +89,9 @@ export const summonerRefreshRelations = relations(
 
 export type SummonerRefreshType = typeof summonerRefresh.$inferSelect;
 export type InsertSummonerRefreshType = typeof summonerRefresh.$inferInsert;
+
+export type SummonerRefreshWithStatisticType = SummonerRefreshType & {
+  summonerStatistic: SummonerStatisticRowType | null;
+  recentSummonerStatistic: SummonerStatisticRowType | null;
+  league: LeagueWithLeaderboardEntryType | null;
+};
