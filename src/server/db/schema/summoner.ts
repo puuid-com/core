@@ -9,6 +9,7 @@ import {
   type SummonerRefreshWithStatisticType,
 } from "@/server/db/schema/summoner-refresh";
 import { type SummonerStatisticRowType } from "@/server/db/schema/summoner-statistic";
+import type { LolQueueType } from "@/shared";
 import type { LolRegionType } from "@/shared/types/riot/common";
 import { relations } from "drizzle-orm";
 import {
@@ -36,6 +37,7 @@ export const summonerTable = pgTable(
     region: text("region").$type<LolRegionType>().notNull(),
 
     mainChampionId: integer("main_champion_id"),
+    mainQueueType: text("main_queue_type").$type<LolQueueType | "ALL">(),
     mainChampionSkinId: integer("main_champion_skin_id"),
     mainChampionBackgroundColor: text("main_champion_background_color"),
     mainChampionForegroundColor: text("main_champion_foreground_color"),

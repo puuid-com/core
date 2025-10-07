@@ -51,6 +51,11 @@ export class SummonerStatisticService {
   ): SummonerStatisticRowType | null {
     const matches = cachedMatches.filter((m) => m.resultType === "NORMAL");
 
+    console.log({
+      puuid,
+      matches: matches.map((m) => ({ id: m.matchId, r: m.resultType })),
+    });
+
     if (!matches.length) {
       return null;
     }
@@ -246,6 +251,8 @@ export class SummonerStatisticService {
     puuids: SummonerType["puuid"][],
     matches: Record<SummonerType["puuid"], MatchWithSummonersType[]>
   ) {
+    console.log("insertSummonerStatisticsTx", puuids);
+
     const fullStatistics = puuids.map((puuid) =>
       this.createSummonerStatistic(puuid, matches[puuid]!)
     );
@@ -261,7 +268,9 @@ export class SummonerStatisticService {
       Boolean
     ) as SummonerStatisticRowType[];
 
-    await tx.insert(summonerStatisticTable).values(insertValues);
+    if (insertValues.length) {
+      await tx.insert(summonerStatisticTable).values(insertValues);
+    }
 
     return puuids.map((puuid) => {
       return {

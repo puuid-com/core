@@ -156,12 +156,21 @@ export class SummonerRefreshService {
       "puuid"
     ).map((r) => r.puuid);
 
+    if (
+      refreshesToKeep.length === puuidsToRefresh.length &&
+      puuidsToRefresh.length === puuids.length
+    ) {
+      return refreshesToKeep;
+    }
+
     const newStatistics =
       await SummonerStatisticService.insertSummonerStatisticsTx(
         tx,
         puuidsToRefresh,
         matches
       );
+
+    console.log({ newStatistics });
 
     const insertValues = newStatistics
       .map<SummonerRefreshType | null>((s) => {
@@ -191,7 +200,9 @@ export class SummonerRefreshService {
       })
       .filter(Boolean) as SummonerRefreshType[];
 
-    await tx.insert(summonerRefresh).values(insertValues);
+    if (insertValues.length) {
+      await tx.insert(summonerRefresh).values(insertValues);
+    }
 
     const newRefreshes: SummonerRefreshWithStatisticType[] = insertValues.map(
       (value) => {

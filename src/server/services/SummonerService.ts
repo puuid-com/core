@@ -134,7 +134,7 @@ export class SummonerService {
     return data;
   }
 
-  static async getSummonersWithRelations(search?: string) {
+  static async searchSummonersWithRelations(search?: string) {
     const norm = search ? normalizeRiotID(search) : "";
     const whereClause = norm
       ? ilike(summonerTable.normalizedRiotId, `%${norm}%`)
@@ -143,7 +143,11 @@ export class SummonerService {
     return db.query.summonerTable.findMany({
       where: whereClause,
       with: {
-        refreshes: true,
+        refreshes: {
+          with: {
+            summonerStatistic: true,
+          },
+        },
         leagues: true,
       },
       limit: 25,
@@ -477,6 +481,7 @@ export class SummonerService {
       mainChampionForegroundColor: null,
       mainChampionId: null,
       mainChampionSkinId: null,
+      mainQueueType: null,
     };
   }
 

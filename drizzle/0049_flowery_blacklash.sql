@@ -1,0 +1,1 @@
+ALTER TABLE "summoner" ADD COLUMN "main_queue_type" text;

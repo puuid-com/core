@@ -102,6 +102,7 @@ export class UserPageService {
                 leagues: true,
                 refreshes: {
                   with: {
+                    recentSummonerStatistic: true,
                     summonerStatistic: true,
                     league: {
                       with: {
