@@ -485,6 +485,45 @@ export class SummonerService {
     };
   }
 
+  static async batchUpdateMainChampionTx(
+    tx: TransactionType,
+    data: {
+      puuid: SummonerType["puuid"];
+      mainChampionId: number;
+      mainChampionSkinId?: number;
+    }[]
+  ) {
+    await Promise.all(
+      data.map(async (u) => {
+        const { backgroundColor, foregroundColor } =
+          await ServerColorsService.getMainColorsFromChampion(
+            u.mainChampionId,
+            u.mainChampionSkinId
+          );
+
+        await db
+          .update(summonerTable)
+          .set({
+            mainChampionId: u.mainChampionId,
+            mainChampionSkinId: u.mainChampionSkinId ?? null,
+            mainChampionBackgroundColor: backgroundColor ?? null,
+            mainChampionForegroundColor: foregroundColor ?? null,
+          })
+          .where(eq(summonerTable.puuid, u.puuid));
+      })
+    );
+  }
+
+  static async batchUpdateMainChampion(
+    data: {
+      puuid: SummonerType["puuid"];
+      mainChampionId: number;
+      mainChampionSkinId?: number;
+    }[]
+  ) {
+    return db.transaction((tx) => this.batchUpdateMainChampionTx(tx, data));
+  }
+
   static async changeMainChampionColors(
     puuid: SummonerType["puuid"],
     skinId: number
@@ -508,7 +547,7 @@ export class SummonerService {
 
     try {
       const { backgroundColor, foregroundColor } =
-        await ServerColorsService.getMainColorsFromChampionSkin(
+        await ServerColorsService.getMainColorsFromChampion(
           mainChampionId,
           skinId
         );

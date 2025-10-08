@@ -1,34 +1,30 @@
-import { symmetricDiffById as symmetricDiff } from "@/lib/utils";
 import { db, type TransactionType } from "@/server/db";
 import type { LeagueWithLeaderboardEntryType } from "@/server/db/schema/league";
 import {
   summonerRefresh,
   type SummonerRefreshWithStatisticType,
 } from "@/server/db/schema/summoner-refresh";
-import { summonerStatisticTable } from "@/server/db/schema/summoner-statistic";
 import type {
-  InsertSummonerRefreshType,
-  LeagueRowType,
-  MatchRowType,
   MatchWithSummonersType,
   SummonerRefreshType,
   SummonerType,
 } from "@/server/db/types";
+import { SummonerService } from "@/server/services";
 import { LeagueService } from "@/server/services/league";
 import { MatchService } from "@/server/services/match/MatchService";
 import type { RefreshProgressMsgType } from "@/server/services/RefreshProgressService";
 import { SummonerStatisticService } from "@/server/services/SummonerStatisticService";
 import { LOL_QUEUES, type LolQueueType } from "@/shared";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { NewLineKind } from "typescript";
 import { uuidv7 } from "uuidv7";
 
 export class SummonerRefreshService {
   private static MIN_SEC_BETWEEN_REFRESH = 1; // 1 sec
-  private static TIME_BEFORE_FORCED_REFRESH = 2 * 24 * 60 * 60 * 1000;
+  private static TIME_BEFORE_FORCED_REFRESH = 1; // 2 * 24 * 60 * 60 * 1000;
 
   static async *progressFetchStats(
-    id: Pick<SummonerType, "region" | "puuid">,
+    summoner: SummonerType,
     queue: LolQueueType,
     leagues: LeagueWithLeaderboardEntryType[],
     matches: MatchWithSummonersType[]
@@ -39,20 +35,18 @@ export class SummonerRefreshService {
     await db.transaction(async (tx) => {
       return await this.refreshSummonersTx(
         tx,
-        [id.puuid],
+        [summoner],
         queue,
         true,
-        { [id.puuid]: matches },
-        { [id.puuid]: leagues }
+        { [summoner.puuid]: matches },
+        { [summoner.puuid]: leagues }
       );
     });
 
     yield { status: "step_finished", step: "fetching_stats" };
   }
 
-  private static async shouldForceRefresh(
-    summonerRefresh: SummonerRefreshType
-  ) {
+  private static shouldForceRefresh(summonerRefresh: SummonerRefreshType) {
     const lastMs = summonerRefresh.refreshedAt.getTime();
 
     if (Number.isNaN(lastMs)) return true;
@@ -117,7 +111,7 @@ export class SummonerRefreshService {
   }
 
   static async refreshSummoners(
-    puuids: SummonerType["puuid"][],
+    summoners: SummonerType[],
     queueType: LolQueueType,
     isFullRefresh: boolean,
     matches: Record<SummonerType["puuid"], MatchWithSummonersType[]>,
@@ -126,7 +120,7 @@ export class SummonerRefreshService {
     return db.transaction((tx) =>
       this.refreshSummonersTx(
         tx,
-        puuids,
+        summoners,
         queueType,
         isFullRefresh,
         matches,
@@ -137,12 +131,18 @@ export class SummonerRefreshService {
 
   static async refreshSummonersTx(
     tx: TransactionType,
-    puuids: SummonerType["puuid"][],
+    summoners: SummonerType[],
     queueType: LolQueueType,
     isFullRefresh: boolean,
     matches: Record<SummonerType["puuid"], MatchWithSummonersType[]>,
     leagues: Record<SummonerType["puuid"], LeagueWithLeaderboardEntryType[]>
   ): Promise<SummonerRefreshWithStatisticType[]> {
+    const summonersToUpdateMainChampion = summoners
+      .filter((s) => s.mainChampionId === null)
+      .map((s) => s.puuid);
+
+    const puuids = summoners.map((s) => s.puuid);
+
     const currentRefreshes = await this.getQueueSummonerRefreshes(
       puuids,
       queueType
@@ -150,16 +150,25 @@ export class SummonerRefreshService {
     const refreshesToKeep = currentRefreshes.filter(
       (r) => !this.shouldForceRefresh(r)
     );
-    const puuidsToRefresh = symmetricDiff(
-      currentRefreshes,
-      refreshesToKeep,
-      "puuid"
-    ).map((r) => r.puuid);
+    const refreshesToForce = currentRefreshes.filter((r) =>
+      this.shouldForceRefresh(r)
+    );
 
-    if (
-      refreshesToKeep.length === puuidsToRefresh.length &&
-      puuidsToRefresh.length === puuids.length
-    ) {
+    const puuidsWithExistingRefresh = new Set(
+      currentRefreshes.map((refresh) => refresh.puuid)
+    );
+    const newPuuids = puuids.filter(
+      (puuid) => !puuidsWithExistingRefresh.has(puuid)
+    );
+
+    const puuidsToRefresh = Array.from(
+      new Set([
+        ...refreshesToForce.map((refresh) => refresh.puuid),
+        ...newPuuids,
+      ])
+    );
+
+    if (!puuidsToRefresh.length) {
       return refreshesToKeep;
     }
 
@@ -169,8 +178,6 @@ export class SummonerRefreshService {
         puuidsToRefresh,
         matches
       );
-
-    console.log({ newStatistics });
 
     const insertValues = newStatistics
       .map<SummonerRefreshType | null>((s) => {
@@ -201,7 +208,32 @@ export class SummonerRefreshService {
       .filter(Boolean) as SummonerRefreshType[];
 
     if (insertValues.length) {
-      await tx.insert(summonerRefresh).values(insertValues);
+      await tx
+        .insert(summonerRefresh)
+        .values(insertValues)
+        .onConflictDoUpdate({
+          target: [summonerRefresh.puuid, summonerRefresh.queueType],
+          set: {
+            isFullRefresh: sql.raw(
+              `excluded.${summonerRefresh.isFullRefresh.name}`
+            ),
+            lastGameCreationEpochSec: sql.raw(
+              `excluded.${summonerRefresh.lastGameCreationEpochSec.name}`
+            ),
+            latestLeagueEntryId: sql.raw(
+              `excluded.${summonerRefresh.latestLeagueEntryId.name}`
+            ),
+            recentSummonerStatisticId: sql.raw(
+              `excluded.${summonerRefresh.recentSummonerStatisticId.name}`
+            ),
+            refreshedAt: sql.raw(
+              `excluded.${summonerRefresh.refreshedAt.name}`
+            ),
+            summonerStatisticId: sql.raw(
+              `excluded.${summonerRefresh.summonerStatisticId.name}`
+            ),
+          },
+        });
     }
 
     const newRefreshes: SummonerRefreshWithStatisticType[] = insertValues.map(
@@ -220,11 +252,38 @@ export class SummonerRefreshService {
       }
     );
 
-    return [...refreshesToKeep, ...newRefreshes];
+    const refreshes = [...refreshesToKeep, ...newRefreshes];
+
+    if (summonersToUpdateMainChampion.length) {
+      await SummonerService.batchUpdateMainChampion(
+        summonersToUpdateMainChampion.reduce(
+          (acc, puuid) => {
+            const stats = refreshes.find(
+              (r) => r.puuid === puuid
+            )!.summonerStatistic;
+
+            if (!stats?.mainChampionId) return acc;
+
+            acc.push({
+              puuid: puuid,
+              mainChampionId: stats.mainChampionId,
+            });
+
+            return acc;
+          },
+          [] as {
+            puuid: SummonerType["puuid"];
+            mainChampionId: number;
+          }[]
+        )
+      );
+    }
+
+    return refreshes;
   }
 
   static async batchFastRefresh(
-    summoners: Pick<SummonerType, "puuid" | "region">[],
+    summoners: SummonerType[],
     queueType: LolQueueType
   ) {
     return db.transaction(async (tx) => {
@@ -240,7 +299,7 @@ export class SummonerRefreshService {
       );
 
       return this.refreshSummoners(
-        summoners.map((s) => s.puuid),
+        summoners,
         queueType,
         false,
         dataBySummoner,

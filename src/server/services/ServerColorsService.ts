@@ -3,21 +3,12 @@ import { Vibrant } from "node-vibrant/node";
 import { NodeImage } from "@vibrant/image-node";
 
 export class ServerColorsService {
-  static async getMainColorsFromChampion(championId: number) {
-    const mainChampionSplashImageUrl =
-      CDragonService.getChampionSplashArtCentered(championId);
+  static async getMainColorsFromChampion(championId: number, skinId?: number) {
+    const url = skinId
+      ? CDragonService.getChampionSplashArtCenteredSkin(championId, skinId)
+      : CDragonService.getChampionSplashArtCentered(championId);
 
-    return this.getColorsFromUrl(mainChampionSplashImageUrl);
-  }
-
-  static async getMainColorsFromChampionSkin(
-    championId: number,
-    skinId: number
-  ) {
-    const mainChampionSplashImageUrl =
-      CDragonService.getChampionSplashArtCenteredSkin(championId, skinId);
-
-    return this.getColorsFromUrl(mainChampionSplashImageUrl);
+    return this.getColorsFromUrl(url);
   }
 
   static async getMainColorsFromProfileIcon(profileIconId: number) {
